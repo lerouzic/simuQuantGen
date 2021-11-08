@@ -102,7 +102,7 @@ offspr<-make.offspring(pop[[1]],pop[[2]])
 Now verify which allele is coming from which parent at each locus.
 
 The update.fitness returns a new population object with updated fitnesses. 
-If trunc.sel is set to 1, there is no selection so that the fitness of eery individual is 1.
+If trunc.sel is set to 1, there is no selection so that the fitness of every individual is 1.
 
 ```{r}
 update.fitness <- function(population, trunc.sel) {
@@ -117,8 +117,10 @@ fitness<-update.fitness(pop)
 and check the update by looking at
 pop[[1]]$fitness
 
+The reproduction function 
+
 ```{r}
-reproduction <- function(population) {
+reproduction <- function(population, pop.size) {
 	# Returns the next generation
 	fitnesses <- sapply(population, "[[", "fitness")
 	replicate(	n       = global$pop.size, 
