@@ -102,13 +102,17 @@ Now verify which allele is coming from which parent at each locus.
 
 The update.fitness returns a new population object with updated fitnesses. 
 ```{r}
-update.fitness <- function(population) {
+update.fitness <- function(population, trunc.sel) {
 	phenotypes <- sapply(population, "[[", "phenotype")
 	keep.indiv <- if (global$trunc.sel > 0) phenotypes >= quantile(phenotypes, prob=1-global$trunc.sel)
 				  else 						phenotypes <= quantile(phenotypes, prob= -global$trunc.sel)
 	mapply(population, keep.indiv, FUN=function(indiv, keep) { indiv$fitness <- if (keep) 1 else 0; indiv }, SIMPLIFY=FALSE)
 }
 ```
+You can type
+fitness<-update.fitness(pop)
+and check the update by looking at
+pop[[1]]$fitness
 
 ```{r}
 reproduction <- function(population) {
