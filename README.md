@@ -71,7 +71,8 @@ The first individual can be accessed by
 pop[[1]] and its values pop[[1]]$genotype etc...
 The last is pop[[100]]
 
-The make.gamete function makes a haploid gamete out of an individual. Recombination rate is 0.5 between loci (=free recombination). 
+The make.gamete function makes a haploid gamete out of an individual. Random drawing is done by the sample function which draws by chance either allele 1 or 2 (c(1,2)) as many times as the number of rows in the genotype of an indiidual (number of loci) with replacement.
+Recombination rate is 0.5 between loci (=free recombination), so that drawing allele 1 or 2 at a given locus does not depend on the preceding value drawn. 
 ```{r}
 make.gamete <- function(indiv) {
 	indiv$genotype[cbind(1:nrow(indiv$genotype), sample(c(1,2), nrow(indiv$genotype), replace=TRUE))]
@@ -81,8 +82,8 @@ To understand what the function does you can type:
 pop[[1]]$genotype to access the genotype of the first individual of the population
 and type 
 gam<-make.gamete(pop[[1]])
+gam is a random drawing at each locus of one of the two alleles of pop[[1]]$genotype.
 Visualize gam
-gam is a random drawing at each locus of one of the two alleles of pop[[1]]$genotype
 
 The make.offspring function makes an individual by binding the genotypes of two gametes coming from two individuals (mother and father).
 ```{r}
@@ -101,6 +102,8 @@ offspr<-make.offspring(pop[[1]],pop[[2]])
 Now verify which allele is coming from which parent at each locus.
 
 The update.fitness returns a new population object with updated fitnesses. 
+If trunc.sel is set to 1, there is no selection so that the fitness of eery individual is 1.
+
 ```{r}
 update.fitness <- function(population, trunc.sel) {
 	phenotypes <- sapply(population, "[[", "phenotype")
