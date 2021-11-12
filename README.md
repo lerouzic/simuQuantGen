@@ -15,10 +15,7 @@ When you click the **Knit** button a document will be generated that includes bo
 
 Here we define the parameters of the population (population size, number of (haploid) loci, initial genetic variance, environmental (residual) variance, strength of selection).
 Truncation selection is defined as retaining the most extreme % of the individuals of the population to form the next generation. trunc.sel=1 indicates 100% of the individuals are retained (=no selection). Positive (resp. negative) values stand for selection towards higher (resp. lower) phenotypes. For example 0.1 means that you retain only 10% of the individuals (those with the highest values).
-```{r}
-global <- list(pop.size = 100, num.loci = 5, var.init = 1, var.env  = 1, trunc.sel= 1)
 
-```
 The GPmap function returns the genotypic value (mean phenotype) corresponding to a genotype
 ```{r}
 GPmap <- function(genotype) {
@@ -29,14 +26,14 @@ The get.phenotype function returns a phenotype value (1) from a Normal distribut
 ```{r}
 get.phenotype <- function(genotype, var.env) {
 
-	rnorm(1, mean=GPmap(genotype), sd=sqrt(global$var.env))
+	rnorm(1, mean=GPmap(genotype), sd=sqrt(var.env))
 }
 ```
 The init.individual function generates a random individual for the starting population. The genotype of the individual is defined as a matrix of 2 columns (2 alleles), the number of rows being equal to the number of loci. The value of each allele is drawn from a Normal distribution (rnorm) of (mean) 0 and (sd): the initial genetic variance divided by the number of alleles in the population (=2 times the number of loci). The individual is defined by its (genotype), its genotypic value (genot.value) which is the sum of the allelic values, its (phenotype), and its fitness. Note here that the fitness of the initial individuals is 1 whatever their phenotypes. Fitnesses are then updated in the simulations (see below). This is because we need all individuals before applying truncation selection.
 ```{r}
  init.individual <- function(var.init, num.loci) {
 	genotype <- matrix(
-		rnorm(2*global$num.loci, mean=0, sd=sqrt(global$var.init/2/global$num.loci)), 
+		rnorm(2*num.loci, mean=0, sd=sqrt(var.init/2/num.loci)), 
 		ncol=2)
 	list(
 		genotype  = genotype, 
@@ -61,7 +58,7 @@ ind$phenotype
 The function init.population generates as many random individuals (init.individual) as in the population (pop.size) and returns those individuals as a list. 
 ```{r}
 init.population <- function(pop.size, var.init, num.loci) {
-	replicate(global$pop.size, init.individual(var.init, num.loci), simplify=FALSE)
+	replicate(pop.size, init.individual(var.init, num.loci), simplify=FALSE)
 }
 ```
 Now generate your population by typing
@@ -106,8 +103,7 @@ The update.fitness returns a new population object with updated fitnesses. It ta
 ```{r}
 update.fitness <- function(population, trunc.sel) {
 	phenotypes <- sapply(population, "[[", "phenotype")
-	keep.indiv <- if (global$trunc.sel > 0) phenotypes >= quantile(phenotypes, prob=1-global$trunc.sel)
-				  else 						phenotypes <= quantile(phenotypes, prob= -global$trunc.sel)
+	keep.indiv <- if (global$trunc.sel > 0) phenotypes >= quantile(phenotypes, prob=1-trunc.sel) else phenotypes <= quantile(phenotypes, prob=-trunc.sel)
 	mapply(population, keep.indiv, FUN=function(indiv, keep) { indiv$fitness <- if (keep) 1 else 0; indiv }, SIMPLIFY=FALSE)
 }
 ```
@@ -119,27 +115,27 @@ but if you try with
 trunc.sel<-0.1
 only few are TRUE (because there is a strong selection)
 
-You can type
+You can then type
 fitness<-update.fitness(pop)
 and check the update by looking at
 pop[[1]]$fitness
 
-The reproduction function 
+The reproduction function generates individuals for a new population by sampling one mother and one father randomly from the population without replacement with a probability equals to their fitness. Mothers and fathers are generated during the make.offspring function (from gametes). 
 
 ```{r}
 reproduction <- function(population, pop.size) {
 	# Returns the next generation
 	fitnesses <- sapply(population, "[[", "fitness")
-	replicate(	n       = global$pop.size, 
-				expr    = make.offspring(
-							mother=unlist(sample(population, 1, prob=fitnesses)), 
-							father=unlist(sample(population, 1, prob=fitnesses))),
+	replicate(n=pop.size, 
+		expr=make.offspring(
+				mother=unlist(sample(population, 1, prob=fitnesses)), 
+				father=unlist(sample(population, 1, prob=fitnesses))),
 				simplify = FALSE)
 }
 ```
 
 ```{r}
-reproduction <- function(population) {
+reproduction <- function(population, pop.size) {
 	# Returns the next generation
 	fitnesses <- sapply(population, "[[", "fitness")
 	replicate(	n       = global$pop.size, 
@@ -174,15 +170,15 @@ summary.population <- function(population) {
 ```
 
 ```{r}
-simulation <- function(generations=20, pop.size = 100, num.loci = 5, var.init = 1, var.env  = 1, trunc.sel= 1) {
+simulation <- function(generations=20, pops = 100, loc = 5, vari = 1, var.env  = 1, sel= 1) {
 	# Runs a simulation
-	pop <- init.population(pop.size=pop.size)
+	pop <- init.population(pop.size=pop, var.init=vari, num.loci=loc)
 	summ <- data.frame()
 	for (gg in 1:generations) {
-		pop <- update.fitness(pop)
+		pop <- update.fitness(pop, trunc.sel=sel)
 		summ <- rbind(summ, summary.population(pop))
 		if (gg < generations)
-			pop <- reproduction(pop)
+			pop <- reproduction(pop, pop.size=pops)
 	}
 	summ
 }
