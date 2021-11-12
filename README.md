@@ -158,7 +158,7 @@ hist(genot.val)
 hist(fitnesses)
 
 ```{r}
-simulation <- function(generations=20, pops = 100, loc = 5, vari = 1, var.env  = 1, sel= 1) {
+simulation <- function(generations=20, pops = 100, loc = 5, vari = 1, varenv  = 1, sel= 1) {
 	# Runs a simulation
 	pop <- init.population(pop.size=pop, var.init=vari, num.loci=loc)
 	summ <- data.frame()
@@ -166,7 +166,7 @@ simulation <- function(generations=20, pops = 100, loc = 5, vari = 1, var.env  =
 		pop <- update.fitness(pop, trunc.sel=sel)
 		summ <- rbind(summ, summary.population(pop))
 		if (gg < generations)
-			pop <- reproduction(pop, pop.size=pops)
+			pop <- reproduction(pop, pop.size=pops, var.env=varenv)
 	}
 	summ
 }
