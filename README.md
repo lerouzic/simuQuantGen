@@ -134,6 +134,9 @@ reproduction <- function(population, pop.size) {
 				simplify = FALSE)
 }
 ```
+if you type
+newpop<-reproduction(pop,100,1)
+THERE IS A PROBLEM: Error: $ operator is invalid for atomic vectors 
 
 The summary function computes summary statistics for the population. For phenotypes, genotypic values and fitness, it provides their mean and variance. 
 ```{r}
