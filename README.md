@@ -84,18 +84,18 @@ Visualize gam
 
 The make.offspring function makes an individual by binding the genotypes of two gametes coming from two individuals (mother and father).
 ```{r}
-make.offspring <- function(mother, father) {
+make.offspring <- function(mother, father, var.env) {
 	genotype <- cbind(make.gamete(mother), make.gamete(father))
 	list(
 		genotype  = genotype, 
 		genot.value= GPmap(genotype),
-		phenotype = get.phenotype(genotype),
+		phenotype = get.phenotype(genotype, var.env),
 		fitness   = 1
 	)
 }
 ```
 For example type:
-offspr<-make.offspring(pop[[1]],pop[[2]])
+offspr<-make.offspring(pop[[1]],pop[[2]], 1)
 Now verify which allele is coming from which parent at each locus.
 
 The update.fitness returns a new population object with updated fitnesses. It takes all the phenotypic values of all individuals, and keeps only the individuals whose phenotypes are above the quantile value corresponding to the truncation selection coefficient (for instance, if trunc.sel=0.1, it takes all phenotypes above 1-0.1=90% of the phenotype values in the population) or below (if the coefficient is negative, where selection apply towards lower values rather than higher values).  
@@ -109,14 +109,15 @@ update.fitness <- function(population, trunc.sel) {
 ```
 Try to type
 trunc.sel<-1 (no selection)
+phenotypes <- sapply(pop, "[[", "phenotype")
 keep.indiv <- if (trunc.sel > 0) phenotypes >= quantile(phenotypes, prob=1-trunc.sel) else phenotypes <= quantile(phenotypes, prob= -trunc.sel)
 You will see that keep.indiv contains only TRUE values,
-but if you try with 
+but if you try the same with 
 trunc.sel<-0.1
 only few are TRUE (because there is a strong selection)
 
 You can then type
-fitness<-update.fitness(pop)
+fitness<-update.fitness(pop, 1)
 and check the update by looking at
 pop[[1]]$fitness
 
@@ -152,7 +153,9 @@ summary.population <- function(population) {
 }
 ```
 We can plot the distribution of phenotypes, genotypic values and fitness by typing
-
+hist(phenotypes)
+hist(genot.val)
+hist(fitnesses)
 
 ```{r}
 simulation <- function(generations=20, pops = 100, loc = 5, vari = 1, var.env  = 1, sel= 1) {
