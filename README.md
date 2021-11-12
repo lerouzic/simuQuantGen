@@ -31,20 +31,20 @@ get.phenotype <- function(genotype, var.env) {
 ```
 The init.individual function generates a random individual for the starting population. The genotype of the individual is defined as a matrix of 2 columns (2 alleles), the number of rows being equal to the number of loci. The value of each allele is drawn from a Normal distribution (rnorm) of (mean) 0 and (sd): the initial genetic variance divided by the number of alleles in the population (=2 times the number of loci). The individual is defined by its (genotype), its genotypic value (genot.value) which is the sum of the allelic values, its (phenotype), and its fitness. Note here that the fitness of the initial individuals is 1 whatever their phenotypes. Fitnesses are then updated in the simulations (see below). This is because we need all individuals before applying truncation selection.
 ```{r}
- init.individual <- function(var.init, num.loci) {
+ init.individual <- function(var.init, num.loci, var.env) {
 	genotype <- matrix(
 		rnorm(2*num.loci, mean=0, sd=sqrt(var.init/2/num.loci)), 
 		ncol=2)
 	list(
 		genotype  = genotype, 
 		genot.value= GPmap(genotype),
-		phenotype = get.phenotype(genotype),
+		phenotype = get.phenotype(genotype, var.env),
 		fitness   = 1
 	)
 }
 ```
 You can try to generate a single individual by typing 
-ind<-init.individual()
+ind<-init.individual(1, 5, 1)
 Each individual is represented by a list of 4 elements containing the genotype, the genotypic value, the phenotype and the fitness.
 Access the genotype of that individual by typing
 ind$genotype
@@ -57,12 +57,12 @@ ind$phenotype
 
 The function init.population generates as many random individuals (init.individual) as in the population (pop.size) and returns those individuals as a list. 
 ```{r}
-init.population <- function(pop.size, var.init, num.loci) {
-	replicate(pop.size, init.individual(var.init, num.loci), simplify=FALSE)
+init.population <- function(pop.size, var.init, num.loci, var.env) {
+	replicate(pop.size, init.individual(var.init, num.loci, var.env), simplify=FALSE)
 }
 ```
 Now generate your population by typing
-pop<-init.population(100, 1, 5)
+pop<-init.population(100, 1, 5, 1)
 This population contains 100 individuals, each of which is a list of the 4 elements described above.
 The first individual can be accessed by 
 pop[[1]] and its values pop[[1]]$genotype etc...
