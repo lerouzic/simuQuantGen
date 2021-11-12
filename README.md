@@ -134,26 +134,9 @@ reproduction <- function(population, pop.size) {
 }
 ```
 
-```{r}
-reproduction <- function(population, pop.size) {
-	# Returns the next generation
-	fitnesses <- sapply(population, "[[", "fitness")
-	replicate(	n       = global$pop.size, 
-				expr    = {
-				      mother <- unlist(sample(population, 1, prob=fitnesses))
-				      father <- if(runif(1) < self.rate) 
-				                  mother 
-				                else 
-				                  unlist(sample(population, 1, prob=fitnesses))
-				      make.offspring(mother, father)
-				      },
-				simplify = FALSE)
-}
-```
-
+The summary function computes summary statistics for the population. For phenotypes, genotypic values and fitness, it provides their mean and variance. 
 ```{r}
 summary.population <- function(population) {
-	# Computes summary statistics for the population
 	phenotypes <- sapply(population, "[[", "phenotype")
 	genot.val  <- sapply(population, "[[", "genot.value")
 	fitnesses  <- sapply(population, "[[", "fitness")
@@ -168,6 +151,8 @@ summary.population <- function(population) {
 	)
 }
 ```
+We can plot the distribution of phenotypes, genotypic values and fitness by typing
+
 
 ```{r}
 simulation <- function(generations=20, pops = 100, loc = 5, vari = 1, var.env  = 1, sel= 1) {
