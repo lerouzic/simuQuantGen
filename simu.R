@@ -44,11 +44,10 @@ make.offspring <- function(mother, father, var.env) {
 	)
 }
 
-update.fitness <- function(population, trunc.sel) {
+update.fitness <- function(population, sel.strength, sel.optimum) {
 	# Returns a new population object with updated fitnesses. 
-	phenotypes <- sapply(population, "[[", "phenotype")
-	keep.indiv <- if (trunc.sel > 0) phenotypes >= quantile(phenotypes, prob=1-trunc.sel) else phenotypes <= quantile(phenotypes, prob=-trunc.sel)
-	mapply(population, keep.indiv, FUN=function(indiv, keep) { indiv$fitness <- if (keep) 1 else 0; indiv }, SIMPLIFY=FALSE)
+	# Fitness = exp(- (phenotype - sel.optimum)^2 / (2*sel.strength))
+	lapply(population, function(indiv) { indiv$fitness <- exp(-(indiv$phenotype-sel.optimum)^2 / 2 / sel.strength); indiv })
 }
 
 reproduction <- function(population, pop.size, var.env) {
@@ -78,12 +77,12 @@ summary.population <- function(population) {
 	)
 }
 
-simulation <- function(generations=20, pop.size = 100, num.loci = 5, var.init = 1, var.env  = 1, sel= 1) {
+simulation <- function(generations=20, pop.size = 100, num.loci = 5, var.init = 1, var.env = 1, sel.strength = 1, sel.optimum = 0) {
 	# Runs a simulation
 	pop <- init.population(pop.size=pop.size, var.init=var.init, num.loci=num.loci, var.env=var.env)
 	summ <- data.frame()
 	for (gg in 1:generations) {
-		pop <- update.fitness(pop, trunc.sel=sel)
+		pop <- update.fitness(pop, sel.strength, sel.optimum)
 		summ <- rbind(summ, summary.population(pop))
 		if (gg < generations)
 			pop <- reproduction(pop, pop.size=pop.size, var.env=var.env)
