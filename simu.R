@@ -1,75 +1,64 @@
 
-global <- list(
-	pop.size = 100,			# Population size every generation
-	num.loci = 5,			# Number of (haploid) loci
-	var.init = 1,			# Initial genetic variance
-	var.env  = 1,			# Environmental (residual) variance
-	trunc.sel= 1			# Strength of truncation selection
-							#  (Part of the population kept for breeding, 1 = 100% => No selection)
-							#  (negative values stand for selection towards smaller phenotypes)
-)
-
 
 GPmap <- function(genotype) {
 	# Returns the genotypic value (mean phenotype) corresponding to a genotype
 	sum(genotype)
 }
 
-get.phenotype <- function(genotype) {
+get.phenotype <- function(genotype, var.env) {
 	# Returns a phenotype value corresponding to a specific genotype. Environmental effets are accounted for. 
-	rnorm(1, mean=GPmap(genotype), sd=sqrt(global$var.env))
+	rnorm(1, mean=GPmap(genotype), sd=sqrt(var.env))
 }
 
-init.individual <- function() {
+init.individual <- function(var.init, num.loci, var.env) {
 	# Generates a random individual for the starting population
 	genotype <- matrix(
-		rnorm(2*global$num.loci, mean=0, sd=sqrt(global$var.init/2/global$num.loci)), 
+		rnorm(2*num.loci, mean=0, sd=sqrt(var.init/2/num.loci)), 
 		ncol=2)
 	list(
 		genotype  = genotype, 
 		genot.value= GPmap(genotype),
-		phenotype = get.phenotype(genotype),
+		phenotype = get.phenotype(genotype, var.env),
 		fitness   = 1
 	)
 }
 
-init.population <- function() {
-	# Generates the initial population
-	replicate(global$pop.size, init.individual(), simplify=FALSE)
+init.population <- function(pop.size, var.init, num.loci, var.env) {
+	# Generates the initial population	
+	replicate(pop.size, init.individual(var.init, num.loci, var.env), simplify=FALSE)
 }
 
 make.gamete <- function(indiv) {
 	# Makes a haploid gamete out of an individual. Recombination rate is 0.5 (free recombination)
-	if (length(indiv) == 1) indiv <- indiv[[1]]
 	indiv$genotype[cbind(1:nrow(indiv$genotype), sample(c(1,2), nrow(indiv$genotype), replace=TRUE))]
 }
 
-make.offspring <- function(mother, father) {
+make.offspring <- function(mother, father, var.env) {
 	# Makes an individual out of two parents. 
 	genotype <- cbind(make.gamete(mother), make.gamete(father))
 	list(
 		genotype  = genotype, 
 		genot.value= GPmap(genotype),
-		phenotype = get.phenotype(genotype),
+		phenotype = get.phenotype(genotype, var.env),
 		fitness   = 1
 	)
 }
 
-update.fitness <- function(population) {
+update.fitness <- function(population, trunc.sel) {
 	# Returns a new population object with updated fitnesses. 
 	phenotypes <- sapply(population, "[[", "phenotype")
-	keep.indiv <- if (global$trunc.sel > 0) phenotypes >= quantile(phenotypes, prob=1-global$trunc.sel)
-				  else 						phenotypes <= quantile(phenotypes, prob= -global$trunc.sel)
+	keep.indiv <- if (trunc.sel > 0) phenotypes >= quantile(phenotypes, prob=1-trunc.sel) else phenotypes <= quantile(phenotypes, prob=-trunc.sel)
 	mapply(population, keep.indiv, FUN=function(indiv, keep) { indiv$fitness <- if (keep) 1 else 0; indiv }, SIMPLIFY=FALSE)
 }
 
-reproduction <- function(population) {
+reproduction <- function(population, pop.size, var.env) {
 	# Returns the next generation
 	fitnesses <- sapply(population, "[[", "fitness")
-	replicate(	n       = global$pop.size, 
-				expr    = make.offspring(
-							mother=sample(population, 1, prob=fitnesses), 
-							father=sample(population, 1, prob=fitnesses)),
+	replicate(n=pop.size, 
+		expr=make.offspring(
+				mother=unlist(sample(population, 1, prob=fitnesses), recursive=FALSE), 
+				father=unlist(sample(population, 1, prob=fitnesses), recursive=FALSE),
+				var.env=var.env),
 				simplify = FALSE)
 }
 
@@ -89,15 +78,15 @@ summary.population <- function(population) {
 	)
 }
 
-simulation <- function(generations=20) {
+simulation <- function(generations=20, pop.size = 100, num.loci = 5, var.init = 1, var.env  = 1, sel= 1) {
 	# Runs a simulation
-	pop <- init.population()
+	pop <- init.population(pop.size=pop.size, var.init=var.init, num.loci=num.loci, var.env=var.env)
 	summ <- data.frame()
 	for (gg in 1:generations) {
-		pop <- update.fitness(pop)
+		pop <- update.fitness(pop, trunc.sel=sel)
 		summ <- rbind(summ, summary.population(pop))
 		if (gg < generations)
-			pop <- reproduction(pop)
+			pop <- reproduction(pop, pop.size=pop.size, var.env=var.env)
 	}
 	summ
 }
