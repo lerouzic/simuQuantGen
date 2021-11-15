@@ -141,7 +141,7 @@ reproduction <- function(population, pop.size, var.env) {
 ```
 if you type
 newpop<-reproduction(pop,100,1)
-THERE IS A PROBLEM: Error: $ operator is invalid for atomic vectors 
+you will see that a new population has been created.
 
 The summary function computes summary statistics for the population. For phenotypes, genotypic values and fitness, it provides their mean and variance. 
 ```{r}
@@ -161,6 +161,10 @@ summary.population <- function(population) {
 	)
 }
 ```
+You can compare the summary of pop and new pop:
+sumpop<-summary.population(pop)
+sumnewpop<-summary.population(newpop)
+
 We can plot the distribution of phenotypes, genotypic values and fitness by typing
 hist(phenotypes)
 hist(genot.val)
