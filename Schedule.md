@@ -1,6 +1,6 @@
-**Below is the planning for the three days of TD on quantitative genetics: **  
+**Below is the planning for the three days of TD on quantitative genetics:**    
 
-**DAY 1 (December 13th, 2-5 PM)  **
+**DAY 1 (December 13th, 2-5 PM)**  
 2-3 PM: Presentation of the simulation tool, brief description of the functions, and some hands-on practice (The Readme.md is a markdown file that will guide you step by step).   
 3-4 PM: Parameters exploration, by binome you will explore the following parameters (one per binome), with the following range:  
 (1) Population size [5,1000];  
