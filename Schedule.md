@@ -28,4 +28,7 @@ If you have time you can further explore
 4-5 PM: Run simulations, start getting graphs
 
 DAY 3 (December 15th, 2-5 PM)
-
+2-3PM: Finish simulations and graphs;
+3-3:45 PM: Interpretations and discussion;
+3:45-4 PM: Break
+4-5 PM: prepare slides for friday exam. Slides must include a (1) small introduction on the biological question you explored, (2) an explanation on how you modify the code, (3) the results and your interpretation, (4) Conclusion and perspectives.
