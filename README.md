@@ -164,10 +164,10 @@ hist(genot.val)
 hist(fitnesses)
 
 
-Below is the main function of the program. It the values of each parameter. 
+Below is the main function of the program: it initiates a population, and for each generation of simulations it creates a new pop and calculates the summary statitics.
 
 ```{r}
-simulation <- function(generations=20, pop.size = 100, num.loci = 5, var.init = 1, var.env = 1, sel.strength = 1, sel.optimum = 0) {
+simulation <- function(generations, pop.size, num.loci, var.init, var.env, sel.strength, sel.optimum) {
 	pop <- init.population(pop.size=pop.size, var.init=var.init, num.loci=num.loci, var.env=var.env)
 	summ <- data.frame()
 	for (gg in 1:generations) {
@@ -180,3 +180,7 @@ simulation <- function(generations=20, pop.size = 100, num.loci = 5, var.init = 
 }
 
 ```
+You can try running a first simulation with the following parameters values.
+sim <- simulation(20, 100, 5, 1, 1, 1, 0)
+You can plot several graphs to follow the evolution of phenotypes, genotypic values and fitness through time, as well as the selection differential.
+
