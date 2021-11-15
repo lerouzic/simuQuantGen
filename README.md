@@ -170,9 +170,11 @@ hist(phenotypes)
 hist(genot.val)
 hist(fitnesses)
 
+
+Below is the main function of the program. It the values of each parameter. 
+
 ```{r}
 simulation <- function(generations=20, pop.size = 100, num.loci = 5, var.init = 1, var.env = 1, sel.strength = 1, sel.optimum = 0) {
-	# Runs a simulation
 	pop <- init.population(pop.size=pop.size, var.init=var.init, num.loci=num.loci, var.env=var.env)
 	summ <- data.frame()
 	for (gg in 1:generations) {
