@@ -165,7 +165,7 @@ You can compare the summary of pop and new pop:
 sumpop<-summary.population(pop)
 sumnewpop<-summary.population(newpop)
 
-We can plot the distribution of phenotypes, genotypic values and fitness by typing
+We can plot the distribution of phenotypes, genotypic values and fitness of new pop by typing
 hist(phenotypes)
 hist(genot.val)
 hist(fitnesses)
