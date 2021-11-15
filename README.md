@@ -103,7 +103,7 @@ The update.fitness returns a new population object with updated fitnesses. It ta
 ```{r}
 update.fitness <- function(population, sel.strength, sel.optimum) {
 	# Fitness = exp(- (phenotype - sel.optimum)^2 / (2*sel.strength))
-	lapply(population, function(indiv) { indiv$fitness <- exp(-(indiv$phenotype-sel.optimum)^2 / 2 / sel.strength); indiv })
+	lapply(population, function(indiv) { indiv$fitness <- exp(-(indiv$phenotype-sel.optimum)^2 / (2 * sel.strength); indiv })
 }
 ```
 Try to type
