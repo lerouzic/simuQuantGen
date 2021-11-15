@@ -32,7 +32,6 @@ get.phenotype <- function(genotype, var.env) {
 The init.individual function generates a random individual for the starting population. The genotype of the individual is defined as a matrix of 2 columns (2 alleles), the number of rows being equal to the number of loci. The value of each allele is drawn from a Normal distribution (rnorm) of (mean) 0 and (sd): the initial genetic variance divided by the number of alleles in the population (=2 times the number of loci). The individual is defined by its (genotype), its genotypic value (genot.value) which is the sum of the allelic values, its (phenotype), and its fitness. Note here that the fitness of the initial individuals is 1 whatever their phenotypes. Fitnesses are then updated in the simulations (see below). This is because we need all individuals before applying truncation selection.
 ```{r}
 init.individual <- function(var.init, num.loci, var.env) {
-	# Generates a random individual for the starting population
 	genotype <- matrix(
 		rnorm(2*num.loci, mean=0, sd=sqrt(var.init/2/num.loci)), 
 		ncol=2)
@@ -56,10 +55,9 @@ which is the sum of the genotypes (the 10 elements contained in ind$genot.value)
 and finally access its phenotype by
 ind$phenotype
 
-The function init.population generates as many random individuals (init.individual) as in the population (pop.size) and returns those individuals as a list. 
+The function init.population generates the initial population with as many individuals (init.individual) as in the population (pop.size) and returns those individuals as a list. 
 ```{r}
 init.population <- function(pop.size, var.init, num.loci, var.env) {
-	# Generates the initial population	
 	replicate(pop.size, init.individual(var.init, num.loci, var.env), simplify=FALSE)
 }
 ```
@@ -70,11 +68,10 @@ The first individual can be accessed by
 pop[[1]] and its values pop[[1]]$genotype etc...
 The last is pop[[100]]
 
-The make.gamete function makes a haploid gamete out of an individual. Random drawing is done by the sample function which draws by chance either allele 1 or 2 (c(1,2)) as many times as the number of rows in the genotype of an indiidual (number of loci) with replacement.
+The make.gamete function makes a haploid gamete out of an individual. Random drawing is done by the sample function which draws by chance either allele 1 or 2 (c(1,2)) as many times as the number of rows in the genotype of an individual (number of loci) with replacement.
 Recombination rate is 0.5 between loci (=free recombination), so that drawing allele 1 or 2 at a given locus does not depend on the preceding value drawn. 
 ```{r}
 make.gamete <- function(indiv) {
-	# Makes a haploid gamete out of an individual. Recombination rate is 0.5 (free recombination)
 	indiv$genotype[cbind(1:nrow(indiv$genotype), sample(c(1,2), nrow(indiv$genotype), replace=TRUE))]
 }
 ```
@@ -88,7 +85,6 @@ Visualize gam
 The make.offspring function makes an individual by binding the genotypes of two gametes coming from two individuals (mother and father).
 ```{r}
 make.offspring <- function(mother, father, var.env) {
-	# Makes an individual out of two parents. 
 	genotype <- cbind(make.gamete(mother), make.gamete(father))
 	list(
 		genotype  = genotype, 
@@ -106,7 +102,6 @@ The update.fitness returns a new population object with updated fitnesses. It ta
 
 ```{r}
 update.fitness <- function(population, sel.strength, sel.optimum) {
-	# Returns a new population object with updated fitnesses. 
 	# Fitness = exp(- (phenotype - sel.optimum)^2 / (2*sel.strength))
 	lapply(population, function(indiv) { indiv$fitness <- exp(-(indiv$phenotype-sel.optimum)^2 / 2 / sel.strength); indiv })
 }
@@ -125,11 +120,10 @@ fitness<-update.fitness(pop, 1)
 and check the update by looking at
 pop[[1]]$fitness
 
-The reproduction function generates individuals for a new population by sampling one mother and one father randomly from the population without replacement with a probability equals to their fitness. Mothers and fathers are generated during the make.offspring function (from gametes). 
+The reproduction function returns the next generation, that is it generates individuals for the next generation population by sampling one mother and one father randomly from the previous population without replacement with a probability equals to their fitness. Mothers and fathers are generated during the make.offspring function (from gametes). 
 
 ```{r}
 reproduction <- function(population, pop.size, var.env) {
-	# Returns the next generation
 	fitnesses <- sapply(population, "[[", "fitness")
 	replicate(n=pop.size, 
 		expr=make.offspring(
@@ -146,7 +140,6 @@ you will see that a new population has been created.
 The summary function computes summary statistics for the population. For phenotypes, genotypic values and fitness, it provides their mean and variance. 
 ```{r}
 summary.population <- function(population) {
-	# Computes summary statistics for the population
 	phenotypes <- sapply(population, "[[", "phenotype")
 	genot.val  <- sapply(population, "[[", "genot.value")
 	fitnesses  <- sapply(population, "[[", "fitness")
@@ -185,5 +178,5 @@ simulation <- function(generations=20, pop.size = 100, num.loci = 5, var.init = 
 	}
 	summ
 }
-}
+
 ```
