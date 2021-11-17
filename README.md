@@ -13,23 +13,25 @@ This is an R Markdown document. Markdown is a simple formatting syntax for autho
 
 When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
 
-Here we define the parameters of the population (population size, number of (haploid) loci, initial genetic variance, environmental (residual) variance, strength of selection).
-Truncation selection is defined as retaining the most extreme % of the individuals of the population to form the next generation. trunc.sel=1 indicates 100% of the individuals are retained (=no selection). Positive (resp. negative) values stand for selection towards higher (resp. lower) phenotypes. For example 0.1 means that you retain only 10% of the individuals (those with the highest values).
+The simulation program works with a certain number of functions that are described below before the main function that uses these fucntions.  
 
-The GPmap function returns the genotypic value (mean phenotype) corresponding to a genotype
+The GPmap function returns the genotypic value (mean phenotype) corresponding to a genotype.  
+
 ```{r}
 GPmap <- function(genotype) {
   sum(genotype)
 }
 ```
-The get.phenotype function returns a phenotype value (1) from a Normal distribution (rnorm) of (mean) the genotypic value, and standard deviation (sd) the square root of the environmental variance as defined for the population.
+The get.phenotype function returns a phenotype value (1) from a Normal distribution (rnorm) of (mean) the genotypic value, and standard deviation (sd) the square root of the environmental variance as defined for the population.  
+
 ```{r}
 get.phenotype <- function(genotype, var.env) {
 
 	rnorm(1, mean=GPmap(genotype), sd=sqrt(var.env))
 }
 ```
-The init.individual function generates a random individual for the starting population. The genotype of the individual is defined as a matrix of 2 columns (2 alleles), the number of rows being equal to the number of loci. The value of each allele is drawn from a Normal distribution (rnorm) of (mean) 0 and (sd): the initial genetic variance divided by the number of alleles in the population (=2 times the number of loci). The individual is defined by its (genotype), its genotypic value (genot.value) which is the sum of the allelic values, its (phenotype), and its fitness. Note here that the fitness of the initial individuals is 1 whatever their phenotypes. Fitnesses are then updated in the simulations (see below). This is because we need all individuals before applying truncation selection.
+The init.individual function generates a random individual for the starting population. The genotype of the individual is defined as a matrix of 2 columns (2 alleles), the number of rows being equal to the number of loci. The value of each allele is drawn from a Normal distribution (rnorm) of (mean) 0 and (sd): the initial genetic variance divided by the number of alleles in the population (=2 times the number of loci). The individual is defined by its (genotype), its genotypic value (genot.value) which is the sum of the allelic values, its (phenotype), and its fitness. Note here that the fitness of the initial individuals is 1 whatever their phenotypes. Fitnesses are then updated in the simulations (see below). This is because we need all individuals before applying selection.  
+
 ```{r}
 init.individual <- function(var.init, num.loci, var.env) {
 	genotype <- matrix(
@@ -43,46 +45,48 @@ init.individual <- function(var.init, num.loci, var.env) {
 	)
 }
 ```
-You can try to generate a single individual by typing 
-ind<-init.individual(1, 5, 1)
-Each individual is represented by a list of 4 elements containing the genotype, the genotypic value, the phenotype and the fitness.
-Access the genotype of that individual by typing
-ind$genotype
-you can observe the values of the two alleles at the 5 loci.
-Now its genotypic value, by typing
-ind$genot.value
-which is the sum of the genotypes (the 10 elements contained in ind$genot.value)
-and finally access its phenotype by
-ind$phenotype
+You can try to generate a single individual by typing:    
+ind<-init.individual(1, 5, 1)  
+Each individual is represented by a list of 4 elements containing the genotype, the genotypic value, the phenotype and the fitness.  
+Access the genotype of that individual by typing:  
+ind$genotype  
+you can observe the values of the two alleles at the 5 loci.  
+Now its genotypic value, by typing:  
+ind$genot.value  
+which is the sum of the genotypes (the 10 elements contained in ind$genot.value)  
+and finally access its phenotype by:  
+ind$phenotype  
 
-The function init.population generates the initial population with as many individuals (init.individual) as in the population (pop.size) and returns those individuals as a list. 
+The function init.population generates the initial population with as many individuals (init.individual) as in the population (pop.size) and returns those individuals as a list.   
 ```{r}
 init.population <- function(pop.size, var.init, num.loci, var.env) {
 	replicate(pop.size, init.individual(var.init, num.loci, var.env), simplify=FALSE)
 }
 ```
-Now generate your population by typing
-pop<-init.population(100, 1, 5, 1)
-This population contains 100 individuals, each of which is a list of the 4 elements described above.
-The first individual can be accessed by 
-pop[[1]] and its values pop[[1]]$genotype etc...
-The last is pop[[100]]
+Now generate your population by typing:  
+pop<-init.population(100, 1, 5, 1)  
+This population contains 100 individuals, each of which is a list of the 4 elements described above.  
+The first individual can be accessed by  
+pop[[1]] and its values pop[[1]]$genotype etc...  
+The last is pop[[100]]  
 
-The make.gamete function makes a haploid gamete out of an individual. Random drawing is done by the sample function which draws by chance either allele 1 or 2 (c(1,2)) as many times as the number of rows in the genotype of an individual (number of loci) with replacement.
-Recombination rate is 0.5 between loci (=free recombination), so that drawing allele 1 or 2 at a given locus does not depend on the preceding value drawn. 
+The make.gamete function makes a haploid gamete out of an individual. Random drawing is done by the sample function which draws by chance either allele 1 or 2 (c(1,2)) as many times as the number of rows in the genotype of an individual (number of loci) with replacement.  
+Recombination rate is 0.5 between loci (=free recombination), so that drawing allele 1 or 2 at a given locus does not depend on the preceding value drawn.  
+
 ```{r}
 make.gamete <- function(indiv) {
 	indiv$genotype[cbind(1:nrow(indiv$genotype), sample(c(1,2), nrow(indiv$genotype), replace=TRUE))]
 }
 ```
-To understand what the function does you can type:
-pop[[1]]$genotype to access the genotype of the first individual of the population
-and type 
-gam<-make.gamete(pop[[1]])
-gam is a random drawing at each locus of one of the two alleles of pop[[1]]$genotype.
-Visualize gam
+To understand what the function does you can type:  
+pop[[1]]$genotype to access the genotype of the first individual of the population  
+and type:  
+gam<-make.gamete(pop[[1]])  
+gam is a random drawing at each locus of one of the two alleles of pop[[1]]$genotype.  
+Visualize gam  
 
-The make.offspring function makes an individual by binding the genotypes of two gametes coming from two individuals (mother and father).
+The make.offspring function makes an individual by binding the genotypes of two gametes coming from two individuals (mother and father).  
+
 ```{r}
 make.offspring <- function(mother, father, var.env) {
 	genotype <- cbind(make.gamete(mother), make.gamete(father))
@@ -94,20 +98,26 @@ make.offspring <- function(mother, father, var.env) {
 	)
 }
 ```
-For example type:
-offspr<-make.offspring(pop[[1]],pop[[2]], 1)
-Now verify which allele is coming from which parent at each locus.
+For example type:  
+offspr<-make.offspring(pop[[1]],pop[[2]], 1)  
+Now verify which allele is coming from which parent at each locus.  
 
-The update.fitness returns a new population object with updated fitnesses. It takes all the phenotypic values of all individuals, and keeps only the individuals whose phenotypes are above the quantile value corresponding to the truncation selection coefficient (for instance, if trunc.sel=0.1, it takes all phenotypes above 1-0.1=90% of the phenotype values in the population) or below (if the coefficient is negative, where selection apply towards lower values rather than higher values).  
+The update.fitness returns a new population object with updated fitnesses. The fitness function is a Gaussian distribution. The fitness of each individual depends on the distance between its phenotype and the optimum (sel.optimum) phenotype, as well as the strenghth of selection, a coefficient that determines the shape of the Gaussian distribution (a high value corresponds to a narrow Gausssian where a small proportion of individuals have a high fitness, while a small value corresponds to a wide Gaussian where a larger proportion of individuals have a higher fitness).  
 
 ```{r}
 update.fitness <- function(population, sel.strength, sel.optimum) {
 	# Fitness = exp(- (phenotype - sel.optimum)^2 / (2*sel.strength))
-	lapply(population, function(indiv) { indiv$fitness <- exp(-(indiv$phenotype-sel.optimum)^2 / (2 * sel.strength); indiv })
+	lapply(population, function(indiv) {indiv$fitness <- exp(-(indiv$phenotype-sel.optimum)^2 /(2 * sel.strength); indiv })
 }
 ```
-Try to type
-trunc.sel<-1 (no selection)
+To look at the shape of the fitness function, you can type:  
+sel.optimum<-0
+sel.strength<-1
+phenotypes <- sapply(pop, "[[", "phenotype")
+and draw the fitness function:  
+Fitness = exp(-(phenotypes - sel.optimum)^2 /(2 * sel.strength))
+plot(Fitness)
+
 phenotypes <- sapply(pop, "[[", "phenotype")
 keep.indiv <- if (trunc.sel > 0) phenotypes >= quantile(phenotypes, prob=1-trunc.sel) else phenotypes <= quantile(phenotypes, prob= -trunc.sel)
 You will see that keep.indiv contains only TRUE values,
