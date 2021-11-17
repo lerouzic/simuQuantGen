@@ -102,12 +102,14 @@ For example type:
 offspr<-make.offspring(pop[[1]],pop[[2]], 1)  
 Now verify which allele is coming from which parent at each locus.  
 
-The update.fitness returns a new population object with updated fitnesses. The fitness function is a Gaussian distribution. The fitness of each individual depends on the distance between its phenotype and the optimum (sel.optimum) phenotype, as well as the strenghth of selection, a coefficient that determines the shape of the Gaussian distribution (a high value corresponds to a narrow Gausssian where a small proportion of individuals have a high fitness, while a small value corresponds to a wide Gaussian where a larger proportion of individuals have a higher fitness).  
+The update.fitness returns a new population object with updated fitnesses.  
+The fitness function is a Gaussian distribution:  
+Fitness = exp(- (phenotype - sel.optimum)^2 / (2 * sel.strength))  
+The fitness of each individual depends on the distance between its phenotype and the optimum (sel.optimum) phenotype, as well as the strenghth of selection, a coefficient that determines the shape of the Gaussian distribution (a high value corresponds to a narrow Gausssian where a small proportion of individuals have a high fitness, while a small value corresponds to a wide Gaussian where a larger proportion of individuals have a higher fitness).  
 
 ```{r}
 update.fitness <- function(population, sel.strength, sel.optimum) {
-	# Fitness = exp(- (phenotype - sel.optimum)^2 / (2*sel.strength))
-	lapply(population, function(indiv) {indiv$fitness <- exp(-(indiv$phenotype-sel.optimum)^2 /(2 * sel.strength); indiv })
+	lapply(population, function(indiv) {indiv$fitness <- exp(-(indiv$phenotype-sel.optimum)^2 /(2 * sel.strength)); indiv })
 }
 ```
 To look at the shape of the fitness function, you can type:  
@@ -115,22 +117,17 @@ sel.optimum<-0
 sel.strength<-1
 phenotypes <- sapply(pop, "[[", "phenotype")
 and draw the fitness function:  
-Fitness = exp(-(phenotypes - sel.optimum)^2 /(2 * sel.strength))
-plot(Fitness)
+Fitness = exp(-(phenotypes - sel.optimum)^2 /(2 * sel.strength))  
+plot(Fitness)  
+You can modulate sel.strength, to make selection stronger (sel.strength=) or smoother (sel.strength=)  
+Look at the shape of the fitness function.  
 
-phenotypes <- sapply(pop, "[[", "phenotype")
-keep.indiv <- if (trunc.sel > 0) phenotypes >= quantile(phenotypes, prob=1-trunc.sel) else phenotypes <= quantile(phenotypes, prob= -trunc.sel)
-You will see that keep.indiv contains only TRUE values,
-but if you try the same with 
-trunc.sel<-0.1
-only few are TRUE (because there is a strong selection)
+You can then type  
+fitness<-update.fitness(pop, 1, 0)    
+and check the update by looking at  
+pop[[1]]$fitness  
 
-You can then type
-fitness<-update.fitness(pop, 1)
-and check the update by looking at
-pop[[1]]$fitness
-
-The reproduction function returns the next generation, that is it generates individuals for the next generation population by sampling one mother and one father randomly from the previous population without replacement with a probability equals to their fitness. Mothers and fathers are generated during the make.offspring function (from gametes). 
+The reproduction function returns the next generation, that is it generates individuals for the next generation population by sampling one mother and one father randomly from the previous population without replacement with a probability equals to their fitness. Mothers and fathers are generated during the make.offspring function (from gametes).  
 
 ```{r}
 reproduction <- function(population, pop.size, var.env) {
