@@ -112,10 +112,28 @@ update.fitness <- function(population, sel.strength, sel.optimum) {
 	lapply(population, function(indiv) {indiv$fitness <- exp(-(indiv$phenotype-sel.optimum)^2 /(2 * sel.strength)); indiv })
 }
 ```
-To look at the shape of the fitness function, you can type:  
-sel.optimum<-0
-sel.strength<-1
-phenotypes <- sapply(pop, "[[", "phenotype")
+To look at the shape of the fitness function, you can generate phenotypes between -3 and 3 and visualize the function considering
+sel.optimum<-0  
+sel.strength<-1  
+plot(seq(-3,3,0.01),exp(-(seq(-3,3,0.01) - sel.optimum)^2 /(2 * sel.strength)))  
+now if you consider a greater value for sel.strength<-4, look what it changes:  
+lines(seq(-3,3,0.01),exp(-(seq(-3,3,0.01) - sel.optimum)^2 /(2 * 4)))
+The function has a larger variance, and the selection is actually smoother than let's say for sel.strength<-0.1
+lines(seq(-3,3,0.01),exp(-(seq(-3,3,0.01) - sel.optimum)^2 /(2 * 0.1)))
+
+> hist(log(Fitness))
+> hist(log(Fitness),breaks=100)
+> plot(log(hist(log(Fitness),breaks=100)$counts))
+> plot(seq(-3,3,0.01),exp(-(seq(-3,3,0.01) - sel.optimum)^2 /(2 * sel.strength)))
+> lines(seq(-3,3,0.01),exp(-(seq(-3,3,0.01) - sel.optimum)^2 /(2 * 4))))
+Error: unexpected ')' in "lines(seq(-3,3,0.01),exp(-(seq(-3,3,0.01) - sel.optimum)^2 /(2 * 4))))"
+> lines(seq(-3,3,0.01),exp(-(seq(-3,3,0.01) - sel.optimum)^2 /(2 * 4)))
+
+
+
+sel.optimum<-0  
+sel.strength<-1  
+phenotypes <- sapply(pop, "[[", "phenotype")  
 and draw the fitness function:  
 Fitness = exp(-(phenotypes - sel.optimum)^2 /(2 * sel.strength))  
 plot(Fitness)  
