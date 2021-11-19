@@ -117,20 +117,11 @@ sel.optimum<-0
 sel.strength<-1  
 plot(seq(-3,3,0.01),exp(-(seq(-3,3,0.01) - sel.optimum)^2 /(2 * sel.strength)))  
 now if you consider a greater value for sel.strength<-4, look what it changes:  
-lines(seq(-3,3,0.01),exp(-(seq(-3,3,0.01) - sel.optimum)^2 /(2 * 4)))
-The function has a larger variance, and the selection is actually smoother than let's say for sel.strength<-0.1
-lines(seq(-3,3,0.01),exp(-(seq(-3,3,0.01) - sel.optimum)^2 /(2 * 0.1)))
+lines(seq(-3,3,0.01),exp(-(seq(-3,3,0.01) - sel.optimum)^2 /(2 * 4)))  
+The function has a larger variance, and the selection is actually smoother than let's say for sel.strength<-0.1  
+lines(seq(-3,3,0.01),exp(-(seq(-3,3,0.01) - sel.optimum)^2 /(2 * 0.1)))  
 
-> hist(log(Fitness))
-> hist(log(Fitness),breaks=100)
-> plot(log(hist(log(Fitness),breaks=100)$counts))
-> plot(seq(-3,3,0.01),exp(-(seq(-3,3,0.01) - sel.optimum)^2 /(2 * sel.strength)))
-> lines(seq(-3,3,0.01),exp(-(seq(-3,3,0.01) - sel.optimum)^2 /(2 * 4))))
-Error: unexpected ')' in "lines(seq(-3,3,0.01),exp(-(seq(-3,3,0.01) - sel.optimum)^2 /(2 * 4))))"
-> lines(seq(-3,3,0.01),exp(-(seq(-3,3,0.01) - sel.optimum)^2 /(2 * 4)))
-
-
-
+Now, for our simulated phenotypes, you can visualize the corresponding fitness function  
 sel.optimum<-0  
 sel.strength<-1  
 phenotypes <- sapply(pop, "[[", "phenotype")  
