@@ -149,11 +149,11 @@ reproduction <- function(population, pop.size, var.env) {
 				simplify = FALSE)
 }
 ```
-if you type
-newpop<-reproduction(pop,100,1)
-you will see that a new population has been created.
+if you type  
+newpop<-reproduction(pop,100,1)  
+you will see that a new population has been created.  
 
-The summary function computes summary statistics for the population. For phenotypes, genotypic values and fitness, it provides their mean and variance. 
+The summary function computes summary statistics for the population. For phenotypes, genotypic values and fitness, it provides their mean and variance.   
 ```{r}
 summary.population <- function(population) {
 	phenotypes <- sapply(population, "[[", "phenotype")
@@ -170,17 +170,17 @@ summary.population <- function(population) {
 	)
 }
 ```
-You can compare the summary of pop and new pop:
-sumpop<-summary.population(pop)
-sumnewpop<-summary.population(newpop)
+You can compare the summary of pop and new pop:  
+sumpop<-summary.population(pop)  
+sumnewpop<-summary.population(newpop)  
 
-We can plot the distribution of phenotypes, genotypic values and fitness of new pop by typing
-hist(phenotypes)
-hist(genot.val)
-hist(fitnesses)
+We can plot the distribution of phenotypes, genotypic values and fitness of new pop by typing  
+hist(phenotypes)  
+hist(genot.val)  
+hist(fitnesses)  
 
 
-Below is the main function of the program: it initiates a population, and for each generation of simulations it creates a new pop and calculates the summary statitics.
+Below is the main function of the program: it initiates a population, and for each generation of simulations it creates a new pop and calculates the summary statitics.  
 
 ```{r}
 simulation <- function(generations, pop.size, num.loci, var.init, var.env, sel.strength, sel.optimum) {
@@ -196,7 +196,7 @@ simulation <- function(generations, pop.size, num.loci, var.init, var.env, sel.s
 }
 
 ```
-You can try running a first simulation with the following parameters values.
-sim <- simulation(20, 100, 5, 1, 1, 1, 0)
-You can plot several graphs to follow the evolution of phenotypes, genotypic values and fitness through time, as well as the selection differential.
+You can try running a first simulation with the following parameters values.  
+sim <- simulation(20, 100, 5, 1, 1, 1, 0)  
+You can plot several graphs to follow the evolution of phenotypes, genotypic values and fitness through time, as well as the selection differential.  
 
