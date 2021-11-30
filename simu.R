@@ -50,15 +50,12 @@ update.fitness <- function(population, sel.strength, sel.optimum) {
 	lapply(population, function(indiv) { indiv$fitness <- exp(-(indiv$phenotype-sel.optimum)^2 / 2 / sel.strength); indiv })
 }
 
-reproduction <- function(population, pop.size, var.env) {
-	# Returns the next generation
-	fitnesses <- sapply(population, "[[", "fitness")
-	replicate(n=pop.size, 
-		expr=make.offspring(
-				mother=unlist(sample(population, 1, prob=fitnesses), recursive=FALSE), 
-				father=unlist(sample(population, 1, prob=fitnesses), recursive=FALSE),
-				var.env=var.env),
-				simplify = FALSE)
+reproduction <- function(population, pop.size, var.env, selfing) {
+  # Returns the next generation
+ 	fitnesses <- sapply(population, "[[", "fitness")
+  	mother=unlist(sample(population, 1, prob=fitnesses), recursive=FALSE)
+  	father=unlist(sample(population, 1, prob=fitnesses), recursive=FALSE)
+  	make.offspring(mother, father,var.env=var.env)
 }
 
 summary.population <- function(population) {
@@ -85,7 +82,7 @@ simulation <- function(generations=20, pop.size = 100, num.loci = 5, var.init = 
 		pop <- update.fitness(pop, sel.strength, sel.optimum)
 		summ <- rbind(summ, summary.population(pop))
 		if (gg < generations)
-			pop <- reproduction(pop, pop.size=pop.size, var.env=var.env)
+			pop <- replicate(pop.size, reproduction(pop, pop.size=pop.size, var.env=var.env), simplify = FALSE)
 	}
 	summ
 }
