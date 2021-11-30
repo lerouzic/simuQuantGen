@@ -105,7 +105,7 @@ Now verify which allele is coming from which parent at each locus.
 The update.fitness returns a new population object with updated fitnesses.  
 The fitness function is a Gaussian distribution:  
 Fitness = exp(- (phenotype - sel.optimum)^2 / (2 * sel.strength))  
-The fitness of each individual depends on the distance between its phenotype and the optimum (sel.optimum) phenotype, as well as the strenghth of selection, a coefficient that determines the shape of the Gaussian distribution (a high value corresponds to a narrow Gausssian where a small proportion of individuals have a high fitness, while a small value corresponds to a wide Gaussian where a larger proportion of individuals have a higher fitness).  
+The fitness of each individual depends on the distance between its phenotype and the optimum (sel.optimum) phenotype, as well as the strenghth of selection, a coefficient that determines the shape of the Gaussian distribution (a high value corresponds to a wide Gausssian where a large proportion of individuals has a high fitness, while a small value corresponds to a narrow Gaussian where a smaller proportion of individuals have a higher fitness).  
 
 ```{r}
 update.fitness <- function(population, sel.strength, sel.optimum) {
