@@ -2,7 +2,7 @@
 
 **DAY 1 (December 13th, 2-5 PM)**  
 
-**2-3PM:** Presentation of the simulation tool, brief description of the functions, and some hands-on practice (The Readme.md is a markdown file that will guide you step by step). 
+**2-3PM:** Presentation of the simulation tool, brief description of the functions, and some hands-on practice (The Readme.md is a markdown file that will guide you step by step).   
 **3-5PM (including 15 minutes break):** Parameters exploration, by binome you will explore the following parameters with the following range (make sure each binome starts the exploration in different order):  
 (1) Population size [5,1000];  
 (2) Number of loci [1,100];  
