@@ -1,3 +1,12 @@
+library(abind)
+
+# Function to get mean of repetitions
+  list.sim.mean <- function(ll) {
+    arr <- do.call(abind, c(ll, list(along=3)))
+    ans <- as.data.frame(rowMeans(arr, dims=2))
+    rownames(ans) <- rownames(ll[[1]])
+    ans
+  }
 
 
 GPmap <- function(genotype) {
@@ -86,3 +95,9 @@ simulation <- function(generations=20, pop.size = 100, num.loci = 5, var.init = 
 	}
 	summ
 }
+
+# To run several repetitions, this command can be used
+rep = 10 #number of repetitions
+sims <- replicate(rep, simulation(), simplify=FALSE)
+# Uses function list.sim.means() defined at the begining. The variable meansims is a dataframe with the mean over the repetitions of each variable over time
+meansims<-list.sim.mean(sims)
