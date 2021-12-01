@@ -8,7 +8,7 @@
 (2) Number of loci [1,100];  
 (3) Inititial variance [0,4];  
 (4) Selection optimum [-10,10];  
-(5) Selection strength [Inf, 10-3];
+(5) Selection strength [Inf, 0.1];
  
 
 **DAY 2 (December 14th, 2-5PM)**  
