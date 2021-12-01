@@ -26,6 +26,7 @@ If you have time you can further explore
 (3)->different values of h among loci;  
 (4)->disruptive fitness function to 1 - exp (-(x-theta)2/2Vs);  
 (5)->intermediate values of recombination.  
+  
 **3:45-4PM:** Break  
 **4-5PM:** Run simulations, start getting graphs  
 
