@@ -13,7 +13,7 @@
 
 **DAY 2 (December 14th, 2-5PM)**  
 
-**2-2:30PM:** Rapid overlook of results compilation and conclusions from Day 1.  
+**2-2:30PM:** Compilation of the results and conclusions from Day 1.  
 **2:30-3:45PM:** By binome, we will ask you to modify the code of the simulation tool to:  
 - (1) incorporate new mutations arising during the simulations, with a mutation rate, mu/individual [10-3;10-2];  
 - (2) introduce a selfing rate which may vary, s [0,1];  
