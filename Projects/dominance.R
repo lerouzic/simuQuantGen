@@ -82,39 +82,36 @@ simulation <- function(generations=20, pop.size = 100, num.loci = 5, var.init = 
 # Exploration of the effect of dominance          #
 ###################################################
 
-ngen <- 20 # easier to see the effect with long simulations
-dom <- c(0, 0.5, 1, 1.5)
-N        <- 1000
-n.loci   <- 5
+set.seed(1)
+
+ngen <- 15 # easier to see the effect with long simulations
+dom <- c(0, 0.5, 1, 1.2)
+N        <- 5000
+n.loci   <- 1
 sel.strength <- 2
 
 pdf("dominance-fig.pdf", width=10, height=15)
-	layout(1:3)
+	layout(1:2)
 	par(cex=1)
 	
-	plot(NULL, xlim=c(0, ngen), ylim=c(-10, 10), xlab="Generations", ylab="Mean phenotype")
+	plot(NULL, xlim=c(0, ngen), ylim=c(-8, 8), xlab="Generations", ylab="Mean phenotype")
 	for (i in seq_along(dom)) {
-		lines(simulation(generations=ngen, pop.size=N, num.loci=n.loci, sel.optimum=10, dom.coef=dom[i], sel.strength=sel.strength)$phen.mean, col=i)
-		lines(simulation(generations=ngen, pop.size=N, num.loci=n.loci, sel.optimum=-10, dom.coef=dom[i], sel.strength=sel.strength)$phen.mean, col=i)
+		s.up <- simulation(generations=ngen, pop.size=N, num.loci=n.loci, sel.optimum=10, dom.coef=dom[i], sel.strength=sel.strength)$phen.mean
+		s.dn <- simulation(generations=ngen, pop.size=N, num.loci=n.loci, sel.optimum=-10, dom.coef=dom[i], sel.strength=sel.strength)$phen.mean
+		lines(s.up-s.up[1], col=i)
+		lines(s.dn-s.dn[1], col=i)
 	}
-	legend("bottomright", lty=1, col=rev(seq_along(dom)), legend=rev(paste0("h = ", dom)))
+	legend("bottomright", lty=1, col=rev(seq_along(dom)), legend=rev(paste0("d = ", dom)))
 	mtext("Dominance makes selection response asymmetric", 3)
 
 
-	plot(NULL, xlim=c(0, ngen), ylim=c(0, 3), xlab="Generations", ylab="Genetic variance")
+	plot(NULL, xlim=c(0, ngen), ylim=c(0, 16), xlab="Generations", ylab="Genetic variance")
 	for (i in seq_along(dom)) {
 		lines(simulation(generations=ngen, pop.size=N, num.loci=n.loci, sel.optimum=10, dom.coef=dom[i], sel.strength=sel.strength)$gen.var, col=i)
 	}
-	legend("bottomright", lty=1, col=rev(seq_along(dom)), legend=rev(paste0("h = ", dom)))
+	legend("bottomright", lty=1, col=rev(seq_along(dom)), legend=rev(paste0("d = ", dom)))
 	mtext("Overdominance prevents the fixation of beneficial alleles (optimum=10)", 3)
 
-
-	plot(NULL, xlim=c(0, ngen), ylim=c(0, 1), xlab="Generations", ylab="Mean fitness")
-	for (i in seq_along(dom)) {
-		lines(simulation(generations=ngen, pop.size=N, num.loci=n.loci, sel.optimum=5, dom.coef=dom[i], sel.strength=sel.strength)$fit.mean, col=i)
-	}
-	legend("bottomright", lty=1, col=rev(seq_along(dom)), legend=rev(paste0("h = ", dom)))
-	mtext("Adaptation through overdominance has a cost (optimum=5)", 3)
 dev.off()
 
 
