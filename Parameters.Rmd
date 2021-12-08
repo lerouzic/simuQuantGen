@@ -1,0 +1,287 @@
+---
+title: "Parameters Exploration EVOGEM 2021"
+author: "Maud Tenaillon"
+date: "01/12/2021"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+  
+First we upload the code found in simu.r 
+
+```{r}
+source("simu.R")
+set.seed(2)
+```
+
+Let's explore Population Size. Here we chose 3 values, 10, 100, 1000. We considered 50 generations, 100 loci, and a selection optimum of 10. First, we considered no selection by setting the sel.strength to Inf. We expect here no selection response. Selection response here is depicted by the evolution of the phenotypic mean across generations. 
+
+
+```{r}
+# If you want to explore more: PopSize <- seq(5,1000, by=50)
+PopSize<-c(10,100,1000)
+for (i in 1:length(PopSize)) {
+  current_PopSize <- PopSize[i]
+  current_name <- paste0("PopSize_",current_PopSize)
+  current_simu <- simulation(generations=50,pop.size=current_PopSize,num.loci=100,var.init=1,var.env=1,sel.strength=Inf,sel.optimum=10)
+  assign(current_name,current_simu)
+  rm(current_simu)
+}
+
+plot(NA,xlim=c(0,50),ylim=c(-10,10),xlab="generations", ylab=("phen.mean"))
+for (i in 1:length(PopSize)) 
+  {
+  ps<-get(paste("PopSize_",PopSize[i],sep=""))
+  lines(ps$phen.mean,col=i)
+}
+legend("bottomright", lty=1, col=1:length(PopSize), legend=paste0("N=", PopSize))
+```
+
+There is no selection response: the optimum of 10 is never reached. We observe however the effect of drift at N=10. Let's look at the genetic variance.
+
+```{r}
+plot(NA,xlim=c(0,50),ylim=c(0,2),xlab="generations", ylab=("gen.var"))
+for (i in 1:length(PopSize)) 
+  {
+  ps<-get(paste("PopSize_",PopSize[i],sep=""))
+  lines(ps$gen.var,col=i)
+}
+legend("bottomright", lty=1, col=1:length(PopSize), legend=paste0("N=", PopSize))
+```
+
+The genetic variance remains around the initial value at N=100 and N=1000, but presents greater fluctuations at N=100 than at N=1000. As for N=10, drift exhausts the initial genetic variance.
+
+Let's explore now the effect of Population Size with selection (sel.strength sets to 5). We expect two phases: first directional selection towards the optimum and subsequently stabilizing selection. We look at the selection response (phenotypic mean across generations) to depict those two phases.
+
+
+```{r}
+# If you want to explore more: PopSize <- seq(5,1000, by=50)
+PopSize<-c(10,100,1000)
+for (i in 1:length(PopSize)) {
+  current_PopSize <- PopSize[i]
+  current_name <- paste0("PopSize_",current_PopSize)
+  current_simu <- simulation(generations=50,pop.size=current_PopSize,num.loci=100,var.init=1,var.env=1,sel.strength=5,sel.optimum=10)
+  assign(current_name,current_simu)
+  rm(current_simu)
+}
+
+plot(NA,xlim=c(0,50),ylim=c(0,12),xlab="generations", ylab=("phen.mean"))
+for (i in 1:length(PopSize)) 
+  {
+  ps<-get(paste("PopSize_",PopSize[i],sep=""))
+  lines(ps$phen.mean,col=i)
+}
+legend("bottomright", lty=1, col=1:length(PopSize), legend=paste0("N=", PopSize))
+```
+
+You can see from this graph the two phases: one where the response to selection is strong, and one where the optimum is reached (around 30 generations at N=1000) and the response reaches a plateau. The smallest population (N=10) displays  a response to selection that is dimished compared with the largest populations. In this simulation at N=10, the optimum is never reached. In addition, the variance around the response is important at N=10, less so at N=100, and there is little fluctuation at N=1000. You can run more simulations to verify this pattern.
+
+Why is the response dimished at N=10? Let's look at the genetic variance.
+
+```{r}
+plot(NA,xlim=c(0,50),ylim=c(0,1.5),xlab="generations", ylab=("gen.var"))
+for (i in 1:length(PopSize)) 
+  {
+  ps<-get(paste("PopSize_",PopSize[i],sep=""))
+  lines(ps$gen.var,col=i)
+}
+legend("topright", lty=1, col=1:length(PopSize), legend=paste0("N=", PopSize))
+```
+
+You see in this graph that the genetic variance is rapidly exhausted at N=10: after 20 generations there is very little variance left. That is why after 20 generations, this population can no more respond to selection. The speed of the variance exhaustion depends on the population size. 
+
+Note that increasing the selection strength to 0.1, limits the response to selection because of genetic variance exhaustion. The optimum of 10 is never reached. This is because selection strength is high and existing haplotypes are rapidly fixed. 
+
+```{r}
+PopSize<-c(10,100,1000)
+for (i in 1:length(PopSize)) {
+  current_PopSize <- PopSize[i]
+  current_name <- paste0("PopSize_",current_PopSize)
+  current_simu <- simulation(generations=50,pop.size=current_PopSize,num.loci=100,var.init=1,var.env=1,sel.strength=0.1,sel.optimum=10)
+  assign(current_name,current_simu)
+  rm(current_simu)
+}
+
+plot(NA,xlim=c(0,50),ylim=c(0,8),xlab="generations", ylab=("phen.mean"))
+for (i in 1:length(PopSize)) 
+  {
+  ps<-get(paste("PopSize_",PopSize[i],sep=""))
+  lines(ps$phen.mean,col=i)
+}
+legend("bottomright", lty=1, col=1:length(PopSize), legend=paste0("N=", PopSize))
+```
+
+
+Let's explore now the effect of the number of loci. Here we chose 3 values, 1, 50, 100 loci. We considered 50 generations, a population size of 100, and a selection optimum of 10, and a selection strength of 5.
+
+```{r}
+NbLocus<-c(1,10,100)
+for (i in 1:length(NbLocus)) {
+  current_NbLocus <- NbLocus[i]
+  current_name <- paste0("NbLocus_",current_NbLocus)
+  current_simu <- simulation(generations=50,pop.size=100,current_NbLocus,var.init=1,var.env=1,sel.strength=5,sel.optimum=10)
+  assign(current_name,current_simu)
+  rm(current_simu)
+}
+
+plot(NA,xlim=c(0,50),ylim=c(0,12),xlab="generations", ylab=("phen.mean"))
+for (i in 1:length(NbLocus)) 
+{
+  ps<-get(paste("NbLocus_",NbLocus[i],sep=""))
+  lines(ps$phen.mean,col=i)
+}
+legend("bottomright", lty=1, col=1:length(NbLocus), legend=paste0("NbLocus=", NbLocus))
+```
+
+
+The response to selection depends on the number of loci, this is because the genetic variance is rapidly exhausted with only a single locus and the same applies beyween 10 and 100 as a shown below.
+
+```{r}
+plot(NA,xlim=c(0,50),ylim=c(0,1.5),xlab="generations", ylab=("gen.var"))
+for (i in 1:length(NbLocus)) 
+{
+  ps<-get(paste("NbLocus_",NbLocus[i],sep=""))
+  lines(ps$gen.var,col=i)
+}
+legend("bottomright", lty=1, col=1:length(NbLocus), legend=paste0("NbLocus=", NbLocus))
+```
+
+With more loci, we approach the infinitesimal model: genetic variance is maintained through time.
+
+Now let's have a look at the initial genetic variance. We considered again 50 generations, 100 individuals, 100 loci, a selection strength of 5 and a selection optimum of 8. With no genetic variance, we expect no selection response. What is the impact on the amount of initial genetic variance on the time to reach the optimum?
+
+```{r}
+
+VarInit<-c(0,1,2,3,4)
+for (i in 1:length(VarInit)) {
+  current_VarInit <- VarInit[i]
+  current_name <- paste0("VarInit_",current_VarInit)
+  current_simu <- simulation(generations=50,pop.size=100,num.loci=100,current_VarInit,var.env=1,sel.strength=5,sel.optimum=8)
+  assign(current_name,current_simu)
+  rm(current_simu)
+}
+
+plot(NA,xlim=c(0,50),ylim=c(0,10),xlab="generations", ylab=("phen.mean"))
+for (i in 1:length(VarInit)) 
+{
+  ps<-get(paste("VarInit_",VarInit[i],sep=""))
+  lines(ps$phen.mean,col=i)
+}
+legend("bottomright", lty=1, col=1:length(VarInit), legend=paste0("VarInit=", VarInit))
+```
+
+As predicted, the optimum is never reached with 0 initial variation. It is reached around 40G, 22G, 20G and 10G for increasing values. The highest the initial variance, the greatest its maintenance through time, translating in higher genetic variance (see the graph below). 
+
+```{r}
+plot(NA,xlim=c(0,50),ylim=c(0,6),xlab="generations", ylab=("gen.var"))
+for (i in 1:length(VarInit)) 
+{
+  ps<-get(paste("VarInit_",VarInit[i],sep=""))
+  lines(ps$gen.var,col=i)
+}
+legend("topright", lty=1, col=1:length(VarInit), legend=paste0("VarInit=", VarInit))
+```
+
+Let's look at impact of the selection optimum.
+
+```{r}
+
+SelOpt<-c(0,2,4,6,8,10)
+for (i in 1:length(SelOpt)) {
+  current_SelOpt <- SelOpt[i]
+  current_name <- paste0("SelOpt_",current_SelOpt)
+  current_simu <- simulation(generations=50,pop.size=100,num.loci=100,var.init=1,var.env=1,sel.strength=5,current_SelOpt)
+  assign(current_name,current_simu)
+  rm(current_simu)
+}
+
+plot(NA,xlim=c(0,50),ylim=c(0,10),xlab="generations", ylab=("phen.mean"))
+for (i in 1:length(SelOpt)) 
+{
+  ps<-get(paste("SelOpt_",SelOpt[i],sep=""))
+  lines(ps$phen.mean,col=i)
+}
+legend("bottomright", lty=1, col=1:length(SelOpt), legend=paste0("SelOpt=", SelOpt))
+```
+
+It takes longer to reach a far optimum: an optimum of 2 here is reached in 20 generations, while it takes 40 generations to reach an optimum of 10. We can predict that with a far optimum the average initial fitness of the population would be lower than with an optimum that is close. Let's verify it. 
+
+
+```{r}
+plot(NA,xlim=c(0,50),ylim=c(0,1),xlab="generations", ylab=("fit.mean"))
+for (i in 1:length(SelOpt)) 
+{
+  ps<-get(paste("SelOpt_",SelOpt[i],sep=""))
+  lines(ps$fit.mean,col=i)
+}
+legend("bottomright", lty=1, col=1:length(SelOpt), legend=paste0("SelOpt=", SelOpt))
+```
+We indeed found that the initial fitness is lower for an optimum of 10 than, for an optimum of 8, 6 etc.. 
+
+Let's look now at the selection strength.
+
+```{r}
+
+SelStr<-c(Inf,10,5,1,0.1)
+for (i in 1:length(SelStr)) {
+  current_SelStr <- SelStr[i]
+  current_name <- paste0("SelStr_",current_SelStr)
+  current_simu <- simulation(generations=50,pop.size=100,num.loci=100,var.init=1,var.env=1,current_SelStr,sel.optimum=10)
+  assign(current_name,current_simu)
+  rm(current_simu)
+}
+
+plot(NA,xlim=c(0,50),ylim=c(0,10),xlab="generations", ylab=("phen.mean"))
+for (i in 1:length(SelStr)) 
+{
+  ps<-get(paste("SelStr_",SelStr[i],sep=""))
+  lines(ps$phen.mean,col=i)
+}
+legend("bottomright", lty=1, col=1:length(SelStr), legend=paste0("SelStr=", SelStr))
+```
+
+We see here an interesting pattern where only for intermediate values of the selection strength (10 and 5) the optimum is reached. This is because when selection strength is null the optimum is never reached (no selection) and when the selection strength is too high, the best haplotypes present in the first generations are rapidly fixed, and no variability is left to create new haplotypes by recombination. In other words, we have here a trade off between the speed of the response and the capacity of the population to reach the optimum: with strong selection strength, the response is fast but limited; with mild selection strength, the response is slow but eventually reached the optimum. Exhaustion of the genetic variance is illustrated below. 
+
+
+```{r}
+plot(NA,xlim=c(0,50),ylim=c(0,2),xlab="generations", ylab=("gen.var"))
+for (i in 1:length(SelStr)) 
+{
+  ps<-get(paste("SelStr_",SelStr[i],sep=""))
+  lines(ps$gen.var,col=i)
+}
+legend("bottomright", lty=1, col=1:length(SelStr), legend=paste0("SelStr=", SelStr))
+
+```
+
+As predicted we observe no genetic variance for high selection strength (1 and 0.1), while variance is maintained in all other conditions (correlatively with the selection strength).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -53,17 +53,17 @@ make.offspring <- function(mother, father, var.env) {
   )
 }
 
-update.fitness <- function(population, sel.strength, sel.optimum) {
-  # Returns a new population object with updated fitnesses. 
-  # Fitness = exp(- (phenotype - sel.optimum)^2 / (2*sel.strength))
-  lapply(population, function(indiv) { indiv$fitness <- exp(-(indiv$phenotype-sel.optimum)^1 / (2 * sel.strength)); indiv })
+update.fitness <- function(population, sel.strength, sel.optimum, Qparam) {
+  # Returns a new population object with updated fitnesses. The parameter Qparam changes the form of the curve, with Q = 2 being Gaussian, 
+  # Q < 2 giving a flatter curve and Q > 2 a sharper one (decreasing and increasing the strength of selection respectively)
+  lapply(population, function(indiv) { indiv$fitness <- exp(-((abs(indiv$phenotype-sel.optimum)) / sqrt(2 * sel.strength))^Qparam); indiv })
 }
 
-reproduction <- function(population, pop.size, var.env, selfing) {
+reproduction <- function(population, pop.size, var.env) {
   # Returns the next generation
   fitnesses <- sapply(population, "[[", "fitness")
   mother=unlist(sample(population, 1, prob=fitnesses), recursive=FALSE)
-  if (runif(1,0,1) < selfing){father=mother} else {father=unlist(sample(population, 1, prob=fitnesses), recursive=FALSE)}
+  father=unlist(sample(population, 1, prob=fitnesses), recursive=FALSE)
   make.offspring(mother, father,var.env=var.env)
 }
 
@@ -84,7 +84,7 @@ summary.population <- function(population) {
 }
 
 
-simulation <- function(generations, pop.size, selfing, num.loci, var.init, var.env, sel.strength, sel.optimum) {
+simulation <- function(generations, pop.size, num.loci, var.init, var.env, sel.strength, sel.optimum, Qparam) {
 
   # Runs a simulation
   pop <- init.population(pop.size=pop.size, var.init=var.init, num.loci=num.loci, var.env=var.env)
@@ -92,16 +92,16 @@ simulation <- function(generations, pop.size, selfing, num.loci, var.init, var.e
   temp <- init.population(pop.size=pop.size, var.init=var.init, num.loci=num.loci, var.env=var.env)
   summ <- data.frame()
   for (gg in 1:generations) {
-    pop <- update.fitness(pop, sel.strength, sel.optimum)
+    pop <- update.fitness(pop, sel.strength, sel.optimum, Qparam)
     summ <- rbind(summ, summary.population(pop))
     if (gg < generations)
-        pop <- replicate(pop.size, reproduction(pop, pop.size=pop.size, var.env=var.env, selfing=selfing), simplify = FALSE)
+        pop <- replicate(pop.size, reproduction(pop, pop.size=pop.size, var.env=var.env), simplify = FALSE)
 
   }
 
 summ
 }
 
-#generations, pop.size, selfing, num.loci, var.init, var.env, sel.strength, sel.optimum
-sims <- replicate(10, simulation(20, 1000, 0, 10,1,1,1,10), simplify=FALSE)
+#generations, pop.size, num.loci, var.init, var.env, sel.strength, sel.optimum, Qparam
+sims <- replicate(10, simulation(20, 1000, 10,1,1,1,10,1), simplify=FALSE)
 meansims<-list.sim.mean(sims)
