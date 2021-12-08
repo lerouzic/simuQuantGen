@@ -101,3 +101,7 @@ simulation <- function(generations, pop.size, selfing, num.loci, var.init, var.e
 
 summ
 }
+
+#generations, pop.size, selfing, num.loci, var.init, var.env, sel.strength, sel.optimum
+sims <- replicate(10, simulation(20, 1000, 0, 10,1,1,1,10), simplify=FALSE)
+meansims<-list.sim.mean(sims)
