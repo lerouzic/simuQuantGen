@@ -56,7 +56,7 @@ make.offspring <- function(mother, father, var.env) {
 update.fitness <- function(population, sel.strength, sel.optimum) {
   # Returns a new population object with updated fitnesses. 
   # Fitness = exp(- (phenotype - sel.optimum)^2 / (2*sel.strength))
-  lapply(population, function(indiv) { indiv$fitness <- exp(-(indiv$phenotype-sel.optimum)^1 / (2 * sel.strength)); indiv })
+  lapply(population, function(indiv) { indiv$fitness <- exp(-(indiv$phenotype-sel.optimum)^2 / (2 * sel.strength)); indiv })
 }
 
 reproduction <- function(population, pop.size, var.env, selfing) {
