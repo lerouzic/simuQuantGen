@@ -47,7 +47,8 @@ for (i in 1:length(PopSize))
 legend("bottomright", lty=1, col=1:length(PopSize), legend=paste0("N=", PopSize))
 
 
-```In absence of selection, the phenotype remains around its initial value. We observe however the effect of drift at N=10. Let's look at the genetic variance.
+```
+In absence of selection, the phenotype remains around its initial value. We observe however the effect of drift at N=10. Let's look at the genetic variance.
 
 ```{r}
 plot(NA,xlim=c(0,50),ylim=c(0,2),xlab="generations", ylab=("gen.var"))
@@ -180,7 +181,7 @@ for (i in 1:length(VarInit))
 legend("bottomright", lty=1, col=1:length(VarInit), legend=paste0("VarInit=", VarInit))
 ```
 
-As predicted, the optimum is never reached with 0 initial variation. It is reached around 40G, 22G, 20G and 10G for increasing values of var.init. The higher the initial variance, the more genetic variance maintained over time (see the graph below). 
+As predicted, the optimum is never reached with 0 initial variation. It is reached around 40G, 22G, 20G and 10G for increasing values of var.init. The higher the initial variance, the more genetic variance maintained over time (see the graph below). The level of initial variance modifies primarily the slope of the initial response to selection (R = Va * beta; so that with constant selection (beta), the response between the generation 0 and 1 is proportional to Va.
 
 ```{r}
 plot(NA,xlim=c(0,50),ylim=c(0,6),xlab="generations", ylab=("gen.var"))
