@@ -88,8 +88,6 @@ simulation <- function(generations, pop.size, num.loci, var.init, var.env, sel.s
 
   # Runs a simulation
   pop <- init.population(pop.size=pop.size, var.init=var.init, num.loci=num.loci, var.env=var.env)
-  # table for storing temproray population
-  temp <- init.population(pop.size=pop.size, var.init=var.init, num.loci=num.loci, var.env=var.env)
   summ <- data.frame()
   for (gg in 1:generations) {
     pop <- update.fitness(pop, sel.strength, sel.optimum, Qparam)
