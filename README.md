@@ -136,22 +136,25 @@ fitness<-update.fitness(pop, 1, 0)
 and check the update by looking at  
 pop[[1]]$fitness  
 
-The reproduction function returns the next generation, that is it generates individuals for the next generation population by sampling one mother and one father randomly from the previous population without replacement with a probability equals to their fitness. Mothers and fathers are generated during the make.offspring function (from gametes).  
+The reproduction function returns a new individual for the next generation. Two parents are randomly sampled (one mother and one father) from the previous population with a probability that is equal to their fitness. The gametes contributed by each parent to create the new individual are generated in the make.offspring function.  
 
 ```{r}
-reproduction <- function(population, pop.size, var.env) {
-	fitnesses <- sapply(population, "[[", "fitness")
-	replicate(n=pop.size, 
-		expr=make.offspring(
-				mother=unlist(sample(population, 1, prob=fitnesses), recursive=FALSE), 
-				father=unlist(sample(population, 1, prob=fitnesses), recursive=FALSE),
-				var.env=var.env),
-				simplify = FALSE)
+reproduction <- function(population, fitnesses, var.env) {
+  	mother=unlist(sample(population, 1, prob=fitnesses), recursive=FALSE)
+  	father=unlist(sample(population, 1, prob=fitnesses), recursive=FALSE)
+  	make.offspring(mother, father,var.env=var.env)
 }
 ```
-if you type  
-newpop<-reproduction(pop,100,1)  
-you will see that a new population has been created.  
+if you type 
+fitnesses <- sapply(pop, "[[", "fitness")
+newindiv<-reproduction(population=pop, fitnesses=fitnesses, var.env=1)
+
+you will see that a new individual has been created.  
+
+In order to create a new population, you can type
+
+newpop <- replicate(pop.size, reproduction(population=pop, fitnesses=fitnesses, var.env=var.env), simplify = FALSE)
+
 
 The summary function computes summary statistics for the population. For phenotypes, genotypic values and fitness, it provides their mean and variance.   
 ```{r}
@@ -190,7 +193,8 @@ simulation <- function(generations, pop.size, num.loci, var.init, var.env, sel.s
 		pop <- update.fitness(pop, sel.strength, sel.optimum)
 		summ <- rbind(summ, summary.population(pop))
 		if (gg < generations)
-			pop <- reproduction(pop, pop.size=pop.size, var.env=var.env)
+			fitnesses <- sapply(population, "[[", "fitness")
+			 pop <- replicate(pop.size, reproduction(population=pop, fitnesses=fitnesses, var.env=var.env), simplify = FALSE)
 	}
 	summ
 }
