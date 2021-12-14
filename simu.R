@@ -59,7 +59,7 @@ update.fitness <- function(population, sel.strength, sel.optimum) {
 	lapply(population, function(indiv) { indiv$fitness <- exp(-(indiv$phenotype-sel.optimum)^2 / 2 / sel.strength); indiv })
 }
 
-reproduction <- function(population, pop.size, var.env, selfing) {
+reproduction <- function(population, pop.size, var.env) {
   # Returns the next generation
  	fitnesses <- sapply(population, "[[", "fitness")
   	mother=unlist(sample(population, 1, prob=fitnesses), recursive=FALSE)
