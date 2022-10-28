@@ -11,7 +11,8 @@ default <- list(
 	var.mut      = 1.0,
 	rate.rec     = 0.5,
 	rate.selfing = 0.0,
-	rate.clonal  = 0.0
+	rate.clonal  = 0.0, 
+	fitness      = "gaussian"
 )
 
 # Function to get mean of repetitions
@@ -106,11 +107,25 @@ make.offspring <- function(
 update.fitness <- function(
 		population, 
 		sel.strength = default$sel.strength, 
-		sel.optimum  = default$sel.optimum) 
+		sel.optimum  = default$sel.optimum,
+		fitness      = default$fitness) 
 {
+	# if fitness=="truncation", abs(sel.strength) stands for the part of the population discarded (and the sign stands for the direction)
+	
 	# Returns a new population object with updated fitnesses. 
-	# Fitness = exp(- (phenotype - sel.optimum)^2 / (2*sel.strength))
-	lapply(population, function(indiv) { indiv$fitness <- exp(-(indiv$phenotype-sel.optimum)^2 / 2 / sel.strength); indiv })
+
+	if (fitness == "gaussian") {
+		lapply(population, function(indiv) { indiv$fitness <- exp(-(indiv$phenotype-sel.optimum)^2 / 2 / sel.strength); indiv })
+	} else if (fitness == "truncation") {
+		pp  <- sapply(population, "[[", "phenotype")
+		if (sel.strength > 0) {
+			thr <- quantile(pp, probs=sel.strength)
+			lapply(population, function(indiv) { indiv$fitness <- if (indiv$phenotype >= thr) 1.0 else 0.0; indiv })
+		} else {
+			thr <- quantile(pp, probs=1-abs(sel.strength))
+			lapply(population, function(indiv) { indiv$fitness <- if (indiv$phenotype <= thr) 1.0 else 0.0; indiv })
+		}
+	}
 }
 
 
@@ -177,6 +192,7 @@ simulation <- function(
 		rate.rec     = default$rate.rec,
 		rate.selfing = default$rate.selfing,
 		rate.clonal  = default$rate.clonal,
+		fitness      = default$fitness, # can be "gaussian" or "truncation"
 		input.file   = NULL, 
 		output.file  = NULL) 
 {
@@ -192,7 +208,9 @@ simulation <- function(
 		all(rate.rec >= 0.0), all(rate.rec <= 0.5),
 		rate.selfing >= 0.0, rate.selfing <= 1.0,
 		rate.clonal  >= 0.0, rate.clonal  <= 1.0,
-		rate.selfing + rate.clonal <= 1.0)
+		rate.selfing + rate.clonal <= 1.0,
+		fitness %in% c("gaussian", "truncation"),
+		fitness == "gaussian" || (sel.strength >= -1.0 && sel.strength <= 1.0)) 
 		
 	rate.rec <- rep_len(rate.rec, num.loci - 1)
 	
@@ -206,7 +224,7 @@ simulation <- function(
 	}
 	summ <- data.frame()
 	for (gg in 1:generations) {
-		pop <- update.fitness(pop, sel.strength, sel.optimum)
+		pop <- update.fitness(pop, sel.strength, sel.optimum, fitness)
 		summ <- rbind(summ, summary.population(pop))
 		if (gg < generations)
 			pop <- reproduction(
