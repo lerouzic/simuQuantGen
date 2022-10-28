@@ -83,9 +83,13 @@ summary.population <- function(population) {
 	)
 }
 
-simulation <- function(generations=20, pop.size = 100, num.loci = 5, var.init = 1, var.env = 1, sel.strength = 1, sel.optimum = 0) {
+simulation <- function(generations=20, pop.size = 100, num.loci = 5, var.init = 1, var.env = 1, sel.strength = 1, sel.optimum = 0, input.file=NULL, output.file=NULL) {
 	# Runs a simulation
-	pop <- init.population(pop.size=pop.size, var.init=var.init, num.loci=num.loci, var.env=var.env)
+	pop <- if (!is.null(input.file)) {
+			readRDS(input.file)
+		} else {
+			init.population(pop.size=pop.size, var.init=var.init, num.loci=num.loci, var.env=var.env)
+		}
 	summ <- data.frame()
 	for (gg in 1:generations) {
 		pop <- update.fitness(pop, sel.strength, sel.optimum)
@@ -93,6 +97,8 @@ simulation <- function(generations=20, pop.size = 100, num.loci = 5, var.init = 
 		if (gg < generations)
 			pop <- replicate(pop.size, reproduction(pop, pop.size=pop.size, var.env=var.env), simplify = FALSE)
 	}
+	if (!is.null(output.file))
+		saveRDS(pop, output.file)
 	summ
 }
 
