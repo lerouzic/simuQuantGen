@@ -1,5 +1,16 @@
 library(abind)
 
+default <- list(
+	pop.size     = 100, 
+	num.loci     = 5, 
+	var.init     = 1.0, 
+	var.env      = 1.0, 
+	sel.strength = 1.0, 
+	sel.optimum  = 0.0, 
+	rate.mut     = 0.0000, 
+	var.mut      = 1.0
+)
+
 # Function to get mean of repetitions
   list.sim.mean <- function(ll) {
     arr <- do.call(abind, c(ll, list(along=3)))
@@ -14,12 +25,19 @@ GPmap <- function(genotype) {
 	sum(genotype)
 }
 
-get.phenotype <- function(genotype, var.env) {
+get.phenotype <- function(
+		genotype, 
+		var.env = default$var.env) 
+{
 	# Returns a phenotype value corresponding to a specific genotype. Environmental effets are accounted for. 
 	rnorm(1, mean=GPmap(genotype), sd=sqrt(var.env))
 }
 
-init.individual <- function(var.init, num.loci, var.env) {
+init.individual <- function(
+		var.init = default$var.init, 
+		num.loci = default$num.loci, 
+		var.env  = default$var.env) 
+{
 	# Generates a random individual for the starting population
 	genotype <- matrix(
 		rnorm(2*num.loci, mean=0, sd=sqrt(var.init/2/num.loci)), 
@@ -32,12 +50,21 @@ init.individual <- function(var.init, num.loci, var.env) {
 	)
 }
 
-init.population <- function(pop.size, var.init, num.loci, var.env) {
+init.population <- function(
+		pop.size = default$pop.size, 
+		var.init = default$var.init, 
+		num.loci = default$num.loci, 
+		var.env  = default$var.env) 
+{
 	# Generates the initial population	
 	replicate(pop.size, init.individual(var.init, num.loci, var.env), simplify=FALSE)
 }
 
-make.gamete <- function(indiv, rate.mut, var.mut) {
+make.gamete <- function(
+		indiv, 
+		rate.mut = default$rate.mut, 
+		var.mut  = default$var.mut) 
+{
 	gam <- indiv$genotype[cbind(1:nrow(indiv$genotype), sample(c(1,2), nrow(indiv$genotype), replace=TRUE))]
 	if (runif(1) < rate.mut) {
 		mut.loc <- sample(seq_along(gam), 1)
@@ -46,7 +73,13 @@ make.gamete <- function(indiv, rate.mut, var.mut) {
 	gam
 }
 
-make.offspring <- function(mother, father, var.env, rate.mut, var.mut) {
+make.offspring <- function(
+		mother, 
+		father, 
+		var.env  = default$var.env, 
+		rate.mut = default$rate.mut, 
+		var.mut  = default$var.mut) 
+{
 	# Makes an individual out of two parents. 
 	genotype <- cbind(make.gamete(mother, rate.mut, var.mut), make.gamete(father, rate.mut, var.mut))
 	list(
@@ -57,14 +90,24 @@ make.offspring <- function(mother, father, var.env, rate.mut, var.mut) {
 	)
 }
 
-update.fitness <- function(population, sel.strength, sel.optimum) {
+update.fitness <- function(
+		population, 
+		sel.strength = default$sel.strength, 
+		sel.optimum  = default$sel.optimum) 
+{
 	# Returns a new population object with updated fitnesses. 
 	# Fitness = exp(- (phenotype - sel.optimum)^2 / (2*sel.strength))
 	lapply(population, function(indiv) { indiv$fitness <- exp(-(indiv$phenotype-sel.optimum)^2 / 2 / sel.strength); indiv })
 }
 
 
-reproduction <- function(population, pop.size, var.env, rate.mut, var.mut) {
+reproduction <- function(
+		population, 
+		pop.size = default$pop.size, 
+		var.env  = default$var.env, 
+		rate.mut = default$rate.mut, 
+		var.mut  = default$var.mut) 
+{
 	# Returns the next generation
 	fitnesses <- sapply(population, "[[", "fitness")
 	replicate(n=pop.size, 
@@ -92,7 +135,19 @@ summary.population <- function(population) {
 	)
 }
 
-simulation <- function(generations=20, pop.size = 100, num.loci = 5, var.init = 1, var.env = 1, sel.strength = 1, sel.optimum = 0, rate.mut=0.0001, var.mut=1, input.file=NULL, output.file=NULL) {
+simulation <- function(
+		generations  = 20, 
+		pop.size     = default$pop.size, 
+		num.loci     = default$num.loci, 
+		var.init     = default$var.init, 
+		var.env      = default$var.env, 
+		sel.strength = default$sel.strength, 
+		sel.optimum  = default$sel.optimum, 
+		rate.mut     = default$rate.mut, 
+		var.mut      = default$var.mut, 
+		input.file   = NULL, 
+		output.file  = NULL) 
+{
 	# Runs a simulation
 	pop <- if (!is.null(input.file)) {
 			readRDS(input.file)
