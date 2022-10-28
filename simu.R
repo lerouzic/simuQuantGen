@@ -9,7 +9,9 @@ default <- list(
 	sel.optimum  = 0.0, 
 	rate.mut     = 0.0000, 
 	var.mut      = 1.0,
-	rate.rec     = 0.5
+	rate.rec     = 0.5,
+	rate.selfing = 0.0,
+	rate.clonal  = 0.0
 )
 
 # Function to get mean of repetitions
@@ -114,22 +116,36 @@ update.fitness <- function(
 
 reproduction <- function(
 		population, 
-		pop.size = default$pop.size, 
-		var.env  = default$var.env, 
-		rate.mut = default$rate.mut, 
-		var.mut  = default$var.mut,
-		rate.rec = default$rate.rec) 
+		pop.size     = default$pop.size, 
+		var.env      = default$var.env, 
+		rate.mut     = default$rate.mut, 
+		var.mut      = default$var.mut,
+		rate.rec     = default$rate.rec,
+		rate.selfing = default$rate.selfing,
+		rate.clonal  = default$rate.clonal) 
 {
 	# Returns the next generation
 	fitnesses <- sapply(population, "[[", "fitness")
 	replicate(n=pop.size, 
-		expr=make.offspring(
-				mother=unlist(sample(population, 1, prob=fitnesses), recursive=FALSE), 
-				father=unlist(sample(population, 1, prob=fitnesses), recursive=FALSE),
-				var.env=var.env ,
-				rate.mut=rate.mut, var.mut=var.mut, 
-				rate.rec=rate.rec),
-				simplify = FALSE)
+		expr= {
+				mother <- unlist(sample(population, 1, prob=fitnesses), recursive=FALSE)
+				rr <- runif(1, 0, 1)
+				if (rr < rate.clonal) {
+					return(mother)
+				} else if (rr < rate.clonal + rate.selfing) {
+					father <- mother
+				} else {
+					father <- unlist(sample(population, 1, prob=fitnesses), recursive=FALSE)
+				}
+				make.offspring(
+					mother   = mother, 
+					father   = father,
+					var.env  = var.env ,
+					rate.mut = rate.mut, 
+					var.mut  = var.mut, 
+					rate.rec = rate.rec)
+				},
+			simplify = FALSE)
 }
 
 summary.population <- function(population) {
@@ -159,10 +175,28 @@ simulation <- function(
 		rate.mut     = default$rate.mut, 
 		var.mut      = default$var.mut, 
 		rate.rec     = default$rate.rec,
+		rate.selfing = default$rate.selfing,
+		rate.clonal  = default$rate.clonal,
 		input.file   = NULL, 
 		output.file  = NULL) 
 {
+	# Checks and adjust parameters
+	stopifnot(
+		generations >= 1,
+		pop.size    >= 1,
+		num.loci    >= 1,
+		var.init    >= 0.0,
+		var.env     >= 0.0,
+		rate.mut    >= 0.0, rate.mut <= 1.0,
+		var.mut     >= 0.0,
+		all(rate.rec >= 0.0), all(rate.rec <= 0.5),
+		rate.selfing >= 0.0, rate.selfing <= 1.0,
+		rate.clonal  >= 0.0, rate.clonal  <= 1.0,
+		rate.selfing + rate.clonal <= 1.0)
+		
 	rate.rec <- rep_len(rate.rec, num.loci - 1)
+	
+	
 	# Runs a simulation
 	if (!is.null(input.file)) {
 		pop <- readRDS(input.file)
@@ -175,7 +209,15 @@ simulation <- function(
 		pop <- update.fitness(pop, sel.strength, sel.optimum)
 		summ <- rbind(summ, summary.population(pop))
 		if (gg < generations)
-			pop <- reproduction(pop, pop.size=pop.size, var.env=var.env, rate.mut=rate.mut, var.mut=var.mut, rate.rec=rate.rec)
+			pop <- reproduction(
+						pop, 
+						pop.size     = pop.size, 
+						var.env      = var.env, 
+						rate.mut     = rate.mut, 
+						var.mut      = var.mut, 
+						rate.rec     = rate.rec, 
+						rate.selfing = rate.selfing, 
+						rate.clonal  = rate.clonal)
 	}
 	if (!is.null(output.file))
 		saveRDS(pop, output.file)
