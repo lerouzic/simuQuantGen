@@ -73,20 +73,20 @@ make.gamete <- function(
 		rate.rec = default$rate.rec) 
 {
 	# Recombination
-	if (all(rate.rec == 0.5)) {
-		gam <- indiv$genotype[cbind(1:nrow(indiv$genotype), sample(c(1,2), nrow(indiv$genotype), replace=TRUE))]
-	} else {
-		recs <- cumsum(runif(length(rate.rec)+1) < c(0.5, rate.rec))
-		gam <- indiv$genotype[cbind(1:nrow(indiv$genotype), 1+(recs %% 2))]
-	}
+	recs <- cumsum(runif(length(rate.rec)+1) < c(0.5, rate.rec))
+	gam <- indiv$genotype[cbind(1:nrow(indiv$genotype), 1+(recs %% 2))]
+#~ 	gam <- ifelse(recs %% 2 == 0, indiv$genotype[,1], indiv$genotype[,2])
 	
 	# Mutation
-	if (runif(1) < rate.mut) {
+	if (rate.mut > 0 && runif(1) < rate.mut) {
 		mut.loc <- sample(seq_along(gam), 1)
 		gam[mut.loc] <- rnorm(1, mean=gam[mut.loc], sd=sqrt(var.mut))
 	}
 	gam
 }
+
+if(require(compiler)) 
+	make.gamete <- cmpfun(make.gamete)
 
 make.offspring <- function(
 		mother, 
@@ -97,7 +97,10 @@ make.offspring <- function(
 		rate.rec = default$rate.rec) 
 {
 	# Makes an individual out of two parents. 
-	genotype <- cbind(make.gamete(mother, rate.mut, var.mut, rate.rec), make.gamete(father, rate.mut, var.mut, rate.rec))
+	genotype <- cbind(
+		make.gamete(mother, rate.mut, var.mut, rate.rec),
+		make.gamete(father, rate.mut, var.mut, rate.rec))
+
 	list(
 		genotype  = genotype, 
 		genot.value= GPmap(genotype),
@@ -143,26 +146,36 @@ reproduction <- function(
 {
 	# Returns the next generation
 	fitnesses <- sapply(population, "[[", "fitness")
-	replicate(n=pop.size, 
-		expr= {
-				mother <- unlist(sample(population, 1, prob=fitnesses), recursive=FALSE)
-				rr <- runif(1, 0, 1)
-				if (rr < rate.clonal) {
-					return(mother)
-				} else if (rr < rate.clonal + rate.selfing) {
-					father <- mother
-				} else {
-					father <- unlist(sample(population, 1, prob=fitnesses), recursive=FALSE)
-				}
-				make.offspring(
-					mother   = mother, 
-					father   = father,
-					var.env  = var.env ,
-					rate.mut = rate.mut, 
-					var.mut  = var.mut, 
-					rate.rec = rate.rec)
-				},
-			simplify = FALSE)
+	num.clones  <- rbinom(1, pop.size, prob=pop.size*rate.clonal)
+	num.selfers <- rbinom(1, pop.size - num.clones, prob=if(rate.clonal == 1) 0 else rate.selfing/(1-rate.clonal))
+	num.outcros <- pop.size - num.clones - num.selfers
+	
+	clones  <- sample(population, num.clones, prob=fitnesses, replace=TRUE)
+	
+	parent.selfers <- sample(population, num.selfers, prob=fitnesses, replace=TRUE)
+	selfers <- lapply(parent.selfers, function(p) 
+		make.offspring(
+			mother   = p, 
+			father   = p,
+			var.env  = var.env ,
+			rate.mut = rate.mut, 
+			var.mut  = var.mut, 
+			rate.rec = rate.rec),
+		)
+	
+	parent.outcros1 <- sample(population, num.outcros, prob=fitnesses, replace=TRUE)
+	parent.outcros2 <- sample(population, num.outcros, prob=fitnesses, replace=TRUE)
+	outcros <- mapply(parent.outcros1, parent.outcros2, FUN=function(p1, p2) 
+		make.offspring(
+			mother   = p1, 
+			father   = p2,
+			var.env  = var.env ,
+			rate.mut = rate.mut, 
+			var.mut  = var.mut, 
+			rate.rec = rate.rec),
+		SIMPLIFY=FALSE)
+	
+	return(c(clones, selfers, outcros)) # The order is not expected to matter
 }
 
 summary.population <- function(population) {
