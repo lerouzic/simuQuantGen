@@ -8,7 +8,8 @@ default <- list(
 	sel.strength = 1.0, 
 	sel.optimum  = 0.0, 
 	rate.mut     = 0.0000, 
-	var.mut      = 1.0
+	var.mut      = 1.0,
+	rate.rec     = 0.5
 )
 
 # Function to get mean of repetitions
@@ -63,9 +64,18 @@ init.population <- function(
 make.gamete <- function(
 		indiv, 
 		rate.mut = default$rate.mut, 
-		var.mut  = default$var.mut) 
+		var.mut  = default$var.mut,
+		rate.rec = default$rate.rec) 
 {
-	gam <- indiv$genotype[cbind(1:nrow(indiv$genotype), sample(c(1,2), nrow(indiv$genotype), replace=TRUE))]
+	# Recombination
+	if (all(rate.rec == 0.5)) {
+		gam <- indiv$genotype[cbind(1:nrow(indiv$genotype), sample(c(1,2), nrow(indiv$genotype), replace=TRUE))]
+	} else {
+		recs <- cumsum(runif(length(rate.rec)+1) < c(0.5, rate.rec))
+		gam <- indiv$genotype[cbind(1:nrow(indiv$genotype), 1+(recs %% 2))]
+	}
+	
+	# Mutation
 	if (runif(1) < rate.mut) {
 		mut.loc <- sample(seq_along(gam), 1)
 		gam[mut.loc] <- rnorm(1, mean=gam[mut.loc], sd=sqrt(var.mut))
@@ -78,10 +88,11 @@ make.offspring <- function(
 		father, 
 		var.env  = default$var.env, 
 		rate.mut = default$rate.mut, 
-		var.mut  = default$var.mut) 
+		var.mut  = default$var.mut, 
+		rate.rec = default$rate.rec) 
 {
 	# Makes an individual out of two parents. 
-	genotype <- cbind(make.gamete(mother, rate.mut, var.mut), make.gamete(father, rate.mut, var.mut))
+	genotype <- cbind(make.gamete(mother, rate.mut, var.mut, rate.rec), make.gamete(father, rate.mut, var.mut, rate.rec))
 	list(
 		genotype  = genotype, 
 		genot.value= GPmap(genotype),
@@ -106,7 +117,8 @@ reproduction <- function(
 		pop.size = default$pop.size, 
 		var.env  = default$var.env, 
 		rate.mut = default$rate.mut, 
-		var.mut  = default$var.mut) 
+		var.mut  = default$var.mut,
+		rate.rec = default$rate.rec) 
 {
 	# Returns the next generation
 	fitnesses <- sapply(population, "[[", "fitness")
@@ -115,7 +127,8 @@ reproduction <- function(
 				mother=unlist(sample(population, 1, prob=fitnesses), recursive=FALSE), 
 				father=unlist(sample(population, 1, prob=fitnesses), recursive=FALSE),
 				var.env=var.env ,
-				rate.mut=rate.mut, var.mut=var.mut),
+				rate.mut=rate.mut, var.mut=var.mut, 
+				rate.rec=rate.rec),
 				simplify = FALSE)
 }
 
@@ -145,21 +158,24 @@ simulation <- function(
 		sel.optimum  = default$sel.optimum, 
 		rate.mut     = default$rate.mut, 
 		var.mut      = default$var.mut, 
+		rate.rec     = default$rate.rec,
 		input.file   = NULL, 
 		output.file  = NULL) 
 {
+	rate.rec <- rep_len(rate.rec, num.loci - 1)
 	# Runs a simulation
-	pop <- if (!is.null(input.file)) {
-			readRDS(input.file)
-		} else {
-			init.population(pop.size=pop.size, var.init=var.init, num.loci=num.loci, var.env=var.env)
-		}
+	if (!is.null(input.file)) {
+		pop <- readRDS(input.file)
+		stopifnot(nrow(pop[[1]]$genotype) != num.loci) # Number of loci is the only parameter that cannot change
+	} else {
+		pop <- init.population(pop.size=pop.size, var.init=var.init, num.loci=num.loci, var.env=var.env)
+	}
 	summ <- data.frame()
 	for (gg in 1:generations) {
 		pop <- update.fitness(pop, sel.strength, sel.optimum)
 		summ <- rbind(summ, summary.population(pop))
 		if (gg < generations)
-			pop <- reproduction(pop, pop.size=pop.size, var.env=var.env, rate.mut=rate.mut, var.mut=var.mut)
+			pop <- reproduction(pop, pop.size=pop.size, var.env=var.env, rate.mut=rate.mut, var.mut=var.mut, rate.rec=rate.rec)
 	}
 	if (!is.null(output.file))
 		saveRDS(pop, output.file)
