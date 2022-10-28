@@ -37,14 +37,18 @@ init.population <- function(pop.size, var.init, num.loci, var.env) {
 	replicate(pop.size, init.individual(var.init, num.loci, var.env), simplify=FALSE)
 }
 
-make.gamete <- function(indiv) {
-	# Makes a haploid gamete out of an individual. Recombination rate is 0.5 (free recombination)
-	indiv$genotype[cbind(1:nrow(indiv$genotype), sample(c(1,2), nrow(indiv$genotype), replace=TRUE))]
+make.gamete <- function(indiv, rate.mut, var.mut) {
+	gam <- indiv$genotype[cbind(1:nrow(indiv$genotype), sample(c(1,2), nrow(indiv$genotype), replace=TRUE))]
+	if (runif(1) < rate.mut) {
+		mut.loc <- sample(seq_along(gam), 1)
+		gam[mut.loc] <- rnorm(1, mean=gam[mut.loc], sd=sqrt(var.mut))
+	}
+	gam
 }
 
-make.offspring <- function(mother, father, var.env) {
+make.offspring <- function(mother, father, var.env, rate.mut, var.mut) {
 	# Makes an individual out of two parents. 
-	genotype <- cbind(make.gamete(mother), make.gamete(father))
+	genotype <- cbind(make.gamete(mother, rate.mut, var.mut), make.gamete(father, rate.mut, var.mut))
 	list(
 		genotype  = genotype, 
 		genot.value= GPmap(genotype),
@@ -59,12 +63,17 @@ update.fitness <- function(population, sel.strength, sel.optimum) {
 	lapply(population, function(indiv) { indiv$fitness <- exp(-(indiv$phenotype-sel.optimum)^2 / 2 / sel.strength); indiv })
 }
 
-reproduction <- function(population, pop.size, var.env) {
-  # Returns the next generation
- 	fitnesses <- sapply(population, "[[", "fitness")
-  	mother=unlist(sample(population, 1, prob=fitnesses), recursive=FALSE)
-  	father=unlist(sample(population, 1, prob=fitnesses), recursive=FALSE)
-  	make.offspring(mother, father,var.env=var.env)
+
+reproduction <- function(population, pop.size, var.env, rate.mut, var.mut) {
+	# Returns the next generation
+	fitnesses <- sapply(population, "[[", "fitness")
+	replicate(n=pop.size, 
+		expr=make.offspring(
+				mother=unlist(sample(population, 1, prob=fitnesses), recursive=FALSE), 
+				father=unlist(sample(population, 1, prob=fitnesses), recursive=FALSE),
+				var.env=var.env ,
+				rate.mut=rate.mut, var.mut=var.mut),
+				simplify = FALSE)
 }
 
 summary.population <- function(population) {
@@ -83,7 +92,7 @@ summary.population <- function(population) {
 	)
 }
 
-simulation <- function(generations=20, pop.size = 100, num.loci = 5, var.init = 1, var.env = 1, sel.strength = 1, sel.optimum = 0, input.file=NULL, output.file=NULL) {
+simulation <- function(generations=20, pop.size = 100, num.loci = 5, var.init = 1, var.env = 1, sel.strength = 1, sel.optimum = 0, rate.mut=0.0001, var.mut=1, input.file=NULL, output.file=NULL) {
 	# Runs a simulation
 	pop <- if (!is.null(input.file)) {
 			readRDS(input.file)
@@ -95,7 +104,7 @@ simulation <- function(generations=20, pop.size = 100, num.loci = 5, var.init = 
 		pop <- update.fitness(pop, sel.strength, sel.optimum)
 		summ <- rbind(summ, summary.population(pop))
 		if (gg < generations)
-			pop <- replicate(pop.size, reproduction(pop, pop.size=pop.size, var.env=var.env), simplify = FALSE)
+			pop <- reproduction(pop, pop.size=pop.size, var.env=var.env, rate.mut=rate.mut, var.mut=var.mut)
 	}
 	if (!is.null(output.file))
 		saveRDS(pop, output.file)
