@@ -12,6 +12,8 @@ default <- list(
 	rate.rec     = 0.5,
 	rate.selfing = 0.0,
 	rate.clonal  = 0.0, 
+	num.pop      = 1,
+	rate.migr    = 0.0,
 	fitness      = "gaussian"
 )
 
@@ -179,6 +181,163 @@ summary.population <- function(population) {
 	)
 }
 
+migration <- function(pops, rate.migr = default$rate.migr) {
+	npop <- length(pops)
+	stopifnot(npop > 1)
+	for (i in 1:(npop-1))
+		for (j in (i+1):npop) {
+			num.migr <- rpois(1, rate.migr * min(length(pops[[i]]), length(pops[[j]])))
+			if (num.migr == 0) next
+			from.i <- sample(1:length(pops[[i]]), num.migr, replace=FALSE)
+			from.j <- sample(1:length(pops[[j]]), num.migr, replace=FALSE)
+			tmp.pop <- pops[[i]][from.i]
+			pops[[i]][from.i] <- pops[[j]][from.j]
+			pops[[j]][from.j] <- tmp.pop
+		}
+	pops
+}
+
+crosspopulations <- function(
+		pop1, 
+		pop2, 
+		numcross     = length(pop1), 
+		var.env      = default$var.env,
+		rate.rec     = default$rate.rec,
+		sel.strength = default$sel.strength,
+		sel.optimum  = default$sel.optimum,
+		fitness      = default$fitness,
+		summary      = TRUE)
+{
+	cross <- replicate(numcross, 
+		expr= {
+				parent1 <- unlist(sample(pop1, 1), recursive=FALSE)
+				parent2 <- unlist(sample(pop2, 1), recursive=FALSE)
+				make.offspring(
+					mother   = parent1, 
+					father   = parent2,
+					var.env  = var.env ,
+					rate.mut = 0.0, 
+					var.mut  = 0.0, 
+					rate.rec = rate.rec)
+				},
+		simplify=FALSE)
+	cross <- update.fitness(cross, sel.strength, sel.optimum, fitness)
+	
+	if (summary) {
+		summary.population(cross)
+	} else {
+		cross
+	}
+}
+
+simulation1pop <- function(
+		generations  = 20, 
+		pop.size     = default$pop.size, 
+		num.loci     = default$num.loci, 
+		var.init     = default$var.init, 
+		var.env      = default$var.env, 
+		sel.strength = default$sel.strength, 
+		sel.optimum  = default$sel.optimum, 
+		rate.mut     = default$rate.mut, 
+		var.mut      = default$var.mut, 
+		rate.rec     = default$rate.rec,
+		rate.selfing = default$rate.selfing,
+		rate.clonal  = default$rate.clonal,
+		fitness      = default$fitness,
+		input.file   = NULL, 
+		output.file  = NULL,
+		summary      = TRUE) 
+{
+	if (!is.null(input.file)) {
+		pop <- readRDS(input.file)
+		stopifnot(nrow(pop[[1]]$genotype) != num.loci) # Number of loci is the only parameter that cannot change
+	} else {
+		pop <- init.population(pop.size=pop.size, var.init=var.init, num.loci=num.loci, var.env=var.env)
+	}
+	summ <- data.frame()
+	for (gg in 1:generations) {
+		pop <- update.fitness(pop, sel.strength, sel.optimum, fitness)
+		if (summary) 
+			summ <- rbind(summ, summary.population(pop))
+		if (gg < generations)
+			pop <- reproduction(
+						pop, 
+						pop.size     = pop.size, 
+						var.env      = var.env, 
+						rate.mut     = rate.mut, 
+						var.mut      = var.mut, 
+						rate.rec     = rate.rec, 
+						rate.selfing = rate.selfing, 
+						rate.clonal  = rate.clonal)
+	}
+	if (!is.null(output.file))
+		saveRDS(pop, output.file)
+	if (summary) {
+		summ
+	} else {
+		pop
+	}
+}
+
+simulationNpop <- function(
+		generations  = 20, 
+		pop.size     = default$pop.size, 
+		num.loci     = default$num.loci, 
+		var.init     = default$var.init, 
+		var.env      = default$var.env, 
+		sel.strength = default$sel.strength, 
+		sel.optimum  = default$sel.optimum, 
+		rate.mut     = default$rate.mut, 
+		var.mut      = default$var.mut, 
+		rate.rec     = default$rate.rec,
+		rate.selfing = default$rate.selfing,
+		rate.clonal  = default$rate.clonal,
+		num.pop      = default$num.pop,
+		rate.migr    = default$rate.migr,
+		fitness      = default$fitness,
+		input.file   = NULL, 
+		output.file  = NULL,
+		summary      = TRUE) 
+{
+	if (!is.null(input.file)) {
+		stopifnot(length(input.file) == num.pop)
+		pops <- lapply(input.file, readRDS)
+	} else {
+		pops <- replicate(num.pop, init.population(pop.size=pop.size, var.init=var.init, num.loci=num.loci, var.env=var.env), simplify=FALSE)
+	}
+	summ <- data.frame()
+	for (gg in 1:generations) {
+		pops <- lapply(pops, function(pop) update.fitness(pop, sel.strength, sel.optimum, fitness))
+		if (summary) 
+			summ <- rbind(summ, do.call(cbind, lapply(pops, summary.population)))
+		if (gg < generations)
+			pops <- lapply(pops, function(pop) reproduction(
+						pop, 
+						pop.size     = pop.size, 
+						var.env      = var.env, 
+						rate.mut     = rate.mut, 
+						var.mut      = var.mut, 
+						rate.rec     = rate.rec, 
+						rate.selfing = rate.selfing, 
+						rate.clonal  = rate.clonal)
+					)
+			pops <- migration(pops, rate.migr)
+	}
+	if (!is.null(output.file)) {
+		stopifnot(length(output.file) == num.pop)
+		for (ii in seq_along(pops))
+			saveRDS(pops[[ii]], output.file[ii])
+	}
+	if (summary) {
+		colnames(summ) <- paste0(colnames(summ), ".", rep(1:num.pop, each=ncol(summ)/num.pop))
+		summ
+	} else {
+		pops
+	}
+}
+	
+		
+		
 simulation <- function(
 		generations  = 20, 
 		pop.size     = default$pop.size, 
@@ -192,9 +351,12 @@ simulation <- function(
 		rate.rec     = default$rate.rec,
 		rate.selfing = default$rate.selfing,
 		rate.clonal  = default$rate.clonal,
+		num.pop      = default$num.pop,
+		rate.migr    = default$rate.migr,
 		fitness      = default$fitness, # can be "gaussian" or "truncation"
 		input.file   = NULL, 
-		output.file  = NULL) 
+		output.file  = NULL,
+		summary      = TRUE) 
 {
 	# Checks and adjust parameters
 	stopifnot(
@@ -210,36 +372,19 @@ simulation <- function(
 		rate.clonal  >= 0.0, rate.clonal  <= 1.0,
 		rate.selfing + rate.clonal <= 1.0,
 		fitness %in% c("gaussian", "truncation"),
-		fitness == "gaussian" || (sel.strength >= -1.0 && sel.strength <= 1.0)) 
+		fitness == "gaussian" || (sel.strength >= -1.0 && sel.strength <= 1.0),
+		num.pop      >= 1, 
+		rate.migr    >= 0.0, rate.migr <= 1.0) 
 		
 	rate.rec <- rep_len(rate.rec, num.loci - 1)
 	
-	
-	# Runs a simulation
-	if (!is.null(input.file)) {
-		pop <- readRDS(input.file)
-		stopifnot(nrow(pop[[1]]$genotype) != num.loci) # Number of loci is the only parameter that cannot change
+	if (num.pop == 1) {
+		simulation1pop(
+			generations, pop.size, num.loci, var.init, var.env, sel.strength, sel.optimum, rate.mut, var.mut, rate.rec, rate.selfing, rate.clonal, fitness, input.file, output.file, summary)
 	} else {
-		pop <- init.population(pop.size=pop.size, var.init=var.init, num.loci=num.loci, var.env=var.env)
+		simulationNpop(
+		generations, pop.size, num.loci, var.init, var.env, sel.strength, sel.optimum, rate.mut, var.mut, rate.rec, rate.selfing, rate.clonal, num.pop, rate.migr, fitness, input.file, output.file, summary)
 	}
-	summ <- data.frame()
-	for (gg in 1:generations) {
-		pop <- update.fitness(pop, sel.strength, sel.optimum, fitness)
-		summ <- rbind(summ, summary.population(pop))
-		if (gg < generations)
-			pop <- reproduction(
-						pop, 
-						pop.size     = pop.size, 
-						var.env      = var.env, 
-						rate.mut     = rate.mut, 
-						var.mut      = var.mut, 
-						rate.rec     = rate.rec, 
-						rate.selfing = rate.selfing, 
-						rate.clonal  = rate.clonal)
-	}
-	if (!is.null(output.file))
-		saveRDS(pop, output.file)
-	summ
 }
 
 # To run several repetitions, this command can be used
