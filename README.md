@@ -1,42 +1,172 @@
----
-title: "Simu_Arnaud_GQ"
-output: html_document
----
+# Presentation of the Simulation program
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+## Parameters
+
+The program defines a series of default parameters, that will be used in the simulations unless specified otherwise. 
+
+```{r}
+}
+default <- list(
+	pop.size     = 100, 
+	num.loci     = 5, 
+	var.init     = 1.0, 
+	var.env      = 1.0, 
+	sel.strength = 1.0, 
+	sel.optimum  = 0.0, 
+	rate.mut     = 0.0000, 
+	var.mut      = 1.0,
+	rate.rec     = 0.5,
+	rate.selfing = 0.0,
+	rate.clonal  = 0.0, 
+	num.pop      = 1,
+	rate.migr    = 0.0,
+	fitness      = "gaussian"
+)
 ```
 
-## R Markdown
+## Simulation objects
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+Simulations are individual-based, each individual is characterized by:
+* Its genotype, a 2-column, num.loci-row matrix (one column per haplotype). Allelic values are real numbers.
+* Its genotypic value (genot.value), the average phenotype corresponding to the genotype
+* Its phenotype, accounting for the (random) effect of the environment
+* Its fitness, proportional to the probability to reproduce. 
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+```{r}
+$genotype
+             [,1]       [,2]
+[1,]  0.165269918  0.3327662
+[2,] -0.311125551  0.1121897
+[3,] -0.007350267  0.1664419
+[4,] -0.262891807 -0.1919904
+[5,] -0.007323414 -0.4895492
 
-The simulation program works with a certain number of functions that are described below before the main function that uses these fucntions.  
+$genot.value
+[1] -0.493563
+
+$phenotype
+[1] -0.7695404
+
+$fitness
+[1] 1
+```
+
+Populations are list of individuals. 
+
+## Genotype - Phenotype
+
+Individuals are diploid, the genotype-phenotype map is additive. 
 
 The GPmap function returns the genotypic value (mean phenotype) corresponding to a genotype.  
 
 ```{r}
 GPmap <- function(genotype) {
-  sum(genotype)
+	# Returns the genotypic value (mean phenotype) corresponding to a genotype
+	sum(genotype)
 }
 ```
 The get.phenotype function returns a phenotype value (1) from a Normal distribution (rnorm) of (mean) the genotypic value, and standard deviation (sd) the square root of the environmental variance as defined for the population.  
 
 ```{r}
-get.phenotype <- function(genotype, var.env) {
-
+get.phenotype <- function(
+		genotype, 
+		var.env = default$var.env) 
+{
+	# Returns a phenotype value corresponding to a specific genotype. Environmental effets are accounted for. 
 	rnorm(1, mean=GPmap(genotype), sd=sqrt(var.env))
 }
 ```
-The init.individual function generates a random individual for the starting population. The genotype of the individual is defined as a matrix of 2 columns (2 alleles), the number of rows being equal to the number of loci. The value of each allele is drawn from a Normal distribution (rnorm) of (mean) 0 and (sd): the initial genetic variance divided by the number of alleles in the population (=2 times the number of loci). The individual is defined by its (genotype), its genotypic value (genot.value) which is the sum of the allelic values, its (phenotype), and its fitness. Note here that the fitness of the initial individuals is 1 whatever their phenotypes. Fitnesses are then updated in the simulations (see below). This is because we need all individuals before applying selection.  
+## Fitness
+
+There are two families of fitness functions,
+* fitness ==  "gaussian" defines fitness as a bell-shaped stabilizing function, defined by its optimum (the phenotype for which fitness == 1) and the selection strength (the variance of the fitness curve, i.e. large values correspond to small selection). 
+
+$$ w(z) = \exp ( -\frac{1}{2} \frac{(z - \text{sel.optimum})^2}{\text{sel.strength}} ) $$
+
+* fitness == "truncation" implements truncation selection, a procedure often associated with artificial selection. All individuals above or below a threshold are kept, all the others are discarded. The proportion of individuals discarded is given by sel.strength (sel.strength = 0: no selection, sel.strength = 1: no one survives), the sign of sel.strength defines the direction of selection (if negative, individuals with the lowest phenotype are kept). 
 
 ```{r}
-init.individual <- function(var.init, num.loci, var.env) {
-	genotype <- matrix(
-		rnorm(2*num.loci, mean=0, sd=sqrt(var.init/2/num.loci)), 
-		ncol=2)
+update.fitness <- function(
+		population, 
+		sel.strength = default$sel.strength, 
+		sel.optimum  = default$sel.optimum,
+		fitness      = default$fitness) 
+{
+	# if fitness=="truncation", abs(sel.strength) stands for the part of the population discarded (and the sign stands for the direction)
+	
+	# Returns a new population object with updated fitnesses. 
+
+	if (fitness == "gaussian") {
+		lapply(population, function(indiv) { indiv$fitness <- exp(-(indiv$phenotype-sel.optimum)^2 / 2 / sel.strength); indiv })
+	} else if (fitness == "truncation") {
+		pp  <- sapply(population, "[[", "phenotype")
+		if (sel.strength > 0) {
+			thr <- quantile(pp, probs=sel.strength)
+			lapply(population, function(indiv) { indiv$fitness <- if (indiv$phenotype >= thr) 1.0 else 0.0; indiv })
+		} else {
+			thr <- quantile(pp, probs=1-abs(sel.strength))
+			lapply(population, function(indiv) { indiv$fitness <- if (indiv$phenotype <= thr) 1.0 else 0.0; indiv })
+		}
+	}
+}
+``` 
+
+## Simulation loop
+
+The simulation loop consists in calling the reproduction() routine recursively up to the number of desired generations.
+
+```{r}
+for (gg in 1:generations) {
+		pop <- update.fitness(pop, sel.strength, sel.optimum, fitness)
+		if (summary) 
+			summ <- rbind(summ, summary.population(pop))
+		if (gg < generations)
+			pop <- reproduction(
+						pop, 
+						pop.size     = pop.size, 
+						var.env      = var.env, 
+						rate.mut     = rate.mut, 
+						var.mut      = var.mut, 
+						rate.rec     = rate.rec, 
+						rate.selfing = rate.selfing, 
+						rate.clonal  = rate.clonal)
+	}
+```
+
+Reproduction can be clonal or sexual. Sexual reproduction itself can rely on outcrossing (random mating) or selfing. This is set by two rates: rate.selfing and rate.clonal. When both are set to 0 (default), the population reproduces by random mating. The corresponding part of the code is below:
+
+```{r}
+num.outcros <- pop.size - num.clones - num.selfers
+
+parent.outcros1 <- sample(population, num.outcros, prob=fitnesses, replace=TRUE)
+parent.outcros2 <- sample(population, num.outcros, prob=fitnesses, replace=TRUE)
+outcros <- mapply(parent.outcros1, parent.outcros2, FUN=function(p1, p2) 
+	make.offspring(
+		mother   = p1, 
+		father   = p2,
+		var.env  = var.env ,
+		rate.mut = rate.mut, 
+		var.mut  = var.mut, 
+		rate.rec = rate.rec),
+	SIMPLIFY=FALSE)
+```
+
+The routine make.offspring() gathers two gametes in a new individual object:
+
+```{r}
+make.offspring <- function(
+		mother, 
+		father, 
+		var.env  = default$var.env, 
+		rate.mut = default$rate.mut, 
+		var.mut  = default$var.mut, 
+		rate.rec = default$rate.rec) 
+{
+	# Makes an individual out of two parents. 
+	genotype <- cbind(
+		make.gamete(mother, rate.mut, var.mut, rate.rec),
+		make.gamete(father, rate.mut, var.mut, rate.rec))
+
 	list(
 		genotype  = genotype, 
 		genot.value= GPmap(genotype),
@@ -44,119 +174,55 @@ init.individual <- function(var.init, num.loci, var.env) {
 		fitness   = 1
 	)
 }
-```
-You can try to generate a single individual by typing:    
-ind<-init.individual(1, 5, 1)  
-Each individual is represented by a list of 4 elements containing the genotype, the genotypic value, the phenotype and the fitness.  
-Access the genotype of that individual by typing:  
-ind$genotype  
-you can observe the values of the two alleles at the 5 loci.  
-Now its genotypic value, by typing:  
-ind$genot.value  
-which is the sum of the genotypes (the 10 elements contained in ind$genot.value)  
-and finally access its phenotype by:  
-ind$phenotype  
+``` 
 
-The function init.population generates the initial population with as many individuals (init.individual) as in the population (pop.size) and returns those individuals as a list.   
-```{r}
-init.population <- function(pop.size, var.init, num.loci, var.env) {
-	replicate(pop.size, init.individual(var.init, num.loci, var.env), simplify=FALSE)
-}
-```
-Now generate your population by typing:  
-pop<-init.population(100, 1, 5, 1)  
-This population contains 100 individuals, each of which is a list of the 4 elements described above.  
-The first individual can be accessed by  
-pop[[1]] and its values pop[[1]]$genotype etc...  
-The last is pop[[100]]  
-
-The make.gamete function makes a haploid gamete out of an individual. Random drawing is done by the sample function which draws by chance either allele 1 or 2 (c(1,2)) as many times as the number of rows in the genotype of an individual (number of loci) with replacement.  
-Recombination rate is 0.5 between loci (=free recombination), so that drawing allele 1 or 2 at a given locus does not depend on the preceding value drawn.  
+Finally, make.gamete() handles two important biological processes: recombination and mutation. 
 
 ```{r}
-make.gamete <- function(indiv) {
-	indiv$genotype[cbind(1:nrow(indiv$genotype), sample(c(1,2), nrow(indiv$genotype), replace=TRUE))]
+make.gamete <- function(
+		indiv, 
+		rate.mut = default$rate.mut, 
+		var.mut  = default$var.mut,
+		rate.rec = default$rate.rec) 
+{
+	# Recombination
+	recs <- cumsum(runif(length(rate.rec)+1) < c(0.5, rate.rec))
+	gam <- indiv$genotype[cbind(1:nrow(indiv$genotype), 1+(recs %% 2))]
+#~ 	gam <- ifelse(recs %% 2 == 0, indiv$genotype[,1], indiv$genotype[,2])
+	
+	# Mutation
+	if (rate.mut > 0 && runif(1) < rate.mut) {
+		mut.loc <- sample(seq_along(gam), 1)
+		gam[mut.loc] <- rnorm(1, mean=gam[mut.loc], sd=sqrt(var.mut))
+	}
+	gam
 }
-```
-To understand what the function does you can type:  
-pop[[1]]$genotype to access the genotype of the first individual of the population  
-and type:  
-gam<-make.gamete(pop[[1]])  
-gam is a random drawing at each locus of one of the two alleles of pop[[1]]$genotype.  
-Visualize gam  
+``` 
 
-The make.offspring function makes an individual by binding the genotypes of two gametes coming from two individuals (mother and father).  
+## Initialization
 
-```{r}
-make.offspring <- function(mother, father, var.env) {
-	genotype <- cbind(make.gamete(mother), make.gamete(father))
-	list(
-		genotype  = genotype, 
-		genot.value= GPmap(genotype),
-		phenotype = get.phenotype(genotype, var.env),
-		fitness   = 1
-	)
-}
-```
-For example type:  
-offspr<-make.offspring(pop[[1]],pop[[2]], 1)  
-Now verify which allele is coming from which parent at each locus.  
+Two procedures to initialize the population.
 
-The update.fitness returns a new population object with updated fitnesses.  
-The fitness function is a Gaussian distribution:  
-Fitness = exp(- (phenotype - sel.optimum)^2 / (2 * sel.strength))  
-The fitness of each individual depends on the distance between its phenotype and the optimum (sel.optimum) phenotype, as well as the strenghth of selection, a coefficient that determines the shape of the Gaussian distribution (a high value corresponds to a wide Gausssian where a large proportion of individuals has a high fitness, while a small value corresponds to a narrow Gaussian where a smaller proportion of individuals have a higher fitness).  
+* From the parameters. The routine init.population() is called, based on the following variables:
+	* pop.size
+	* var.init , the initial genetic variance
+	* num.loci
+	* var.env
 
-```{r}
-update.fitness <- function(population, sel.strength, sel.optimum) {
-	lapply(population, function(indiv) {indiv$fitness <- exp(-(indiv$phenotype-sel.optimum)^2 /(2 * sel.strength)); indiv })
-}
-```
-To look at the shape of the fitness function, you can generate phenotypes between -3 and 3 and visualize the function considering
-sel.optimum<-0  
-sel.strength<-1  
-plot(seq(-3,3,0.01),exp(-(seq(-3,3,0.01) - sel.optimum)^2 /(2 * sel.strength)))  
-now if you consider a greater value for sel.strength<-4, look what it changes:  
-lines(seq(-3,3,0.01),exp(-(seq(-3,3,0.01) - sel.optimum)^2 /(2 * 4)))  
-The function has a larger variance, and the selection is actually smoother than let's say for sel.strength<-0.1  
-lines(seq(-3,3,0.01),exp(-(seq(-3,3,0.01) - sel.optimum)^2 /(2 * 0.1)))  
+* From a file (option input.file). This file had to be created from a previous simulation. 
 
-Now, for our simulated phenotypes, you can visualize the corresponding fitness function  
-sel.optimum<-0  
-sel.strength<-1  
-phenotypes <- sapply(pop, "[[", "phenotype")  
-and draw the fitness function:  
-Fitness = exp(-(phenotypes - sel.optimum)^2 /(2 * sel.strength))  
-plot(Fitness)  
-You can modulate sel.strength, to make selection stronger (sel.strength=) or smoother (sel.strength=)  
-Look at the shape of the fitness function.  
+## Simulation output
 
-You can then type  
-fitness<-update.fitness(pop, 1, 0)    
-and check the update by looking at  
-pop[[1]]$fitness  
+After having run for the requested number of generations, the simulation stops. The variable returned by the simulation routine depends on the option "summary".
+* summary=TRUE returns a data.frame with, for each generation, the average and the variance of a series of indicators:
+	* phen.mean : the phenotypic mean
+	* phen.var  : the phenotypic variance
+	* gen.mean  : the genetic mean
+	* gen.var   : the genetic variance (should be phen.var - var.env)
+	* fit.mean  : the mean absolute fitness
+	* fit.var   : the variance in absolute fitness
+	* sel.diff  : the realized selection differential (measured from the individual fitnesses)
 
-The reproduction function returns a new individual for the next generation. Two parents are randomly sampled (one mother and one father) from the previous population with a probability that is equal to their fitness. The gametes contributed by each parent to create the new individual are generated in the make.offspring function.  
-
-```{r}
-reproduction <- function(population, fitnesses, var.env) {
-  	mother=unlist(sample(population, 1, prob=fitnesses), recursive=FALSE)
-  	father=unlist(sample(population, 1, prob=fitnesses), recursive=FALSE)
-  	make.offspring(mother, father,var.env=var.env)
-}
-```
-if you type 
-fitnesses <- sapply(pop, "[[", "fitness")
-newindiv<-reproduction(population=pop, fitnesses=fitnesses, var.env=1)
-
-you will see that a new individual has been created.  
-
-In order to create a new population, you can type
-
-newpop <- replicate(pop.size, reproduction(population=pop, fitnesses=fitnesses, var.env=var.env), simplify = FALSE)
-
-
-The summary function computes summary statistics for the population. For phenotypes, genotypic values and fitness, it provides their mean and variance.   
 ```{r}
 summary.population <- function(population) {
 	phenotypes <- sapply(population, "[[", "phenotype")
@@ -173,34 +239,9 @@ summary.population <- function(population) {
 	)
 }
 ```
-You can compare the summary of pop and new pop:  
-sumpop<-summary.population(pop)  
-sumnewpop<-summary.population(newpop)  
-
-We can plot the distribution of phenotypes, genotypic values and fitness of new pop by typing  
-hist(phenotypes)  
-hist(genot.val)  
-hist(fitnesses)  
 
 
-Below is the main function of the program: it initiates a population, and for each generation of simulations it creates a new pop and calculates the summary statitics.  
+* summary = FALSE returns the population. 
 
-```{r}
-simulation <- function(generations, pop.size, num.loci, var.init, var.env, sel.strength, sel.optimum) {
-	pop <- init.population(pop.size=pop.size, var.init=var.init, num.loci=num.loci, var.env=var.env)
-	summ <- data.frame()
-	for (gg in 1:generations) {
-		pop <- update.fitness(pop, sel.strength, sel.optimum)
-		summ <- rbind(summ, summary.population(pop))
-		if (gg < generations)
-			fitnesses <- sapply(population, "[[", "fitness")
-			 pop <- replicate(pop.size, reproduction(population=pop, fitnesses=fitnesses, var.env=var.env), simplify = FALSE)
-	}
-	summ
-}
-
-```
-You can try running a first simulation with the following parameters values.  
-sim <- simulation(20, 100, 5, 1, 1, 1, 0)  
-You can plot several graphs to follow the evolution of phenotypes, genotypic values and fitness through time, as well as the selection differential.  
+In addition, the option output.file="file.rds" can be provided to the simulation so that the final population is stored in a .rds file (internal format to stort R objects). Therefore, summary=FALSE is never mandatory, as the population can be retrieved by readRDS() from the output file.
 
