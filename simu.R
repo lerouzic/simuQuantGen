@@ -109,6 +109,32 @@ make.offspring <- function(
 	)
 }
 
+make.clonal.offspring <- function(
+		parent, 
+		var.env  = default$var.env, 
+		rate.mut = default$rate.mut, 
+		var.mut  = default$var.mut)
+{
+	genotype <- parent$genotype
+	# Not very clean, but in order to keep exactly the same shortcomings as sexual reproduction 
+	# (when rate.mut is large for instance), the best is to repeat the mutation procedure twice
+	if (rate.mut > 0 && runif(1) < rate.mut) {
+		mut.loc <- sample(seq_len(nrow(genotype), 1))
+		genotype[mut.loc,1] <- rnorm(1, mean=genotype[mut.loc,1], sd=sqrt(var.mut))
+	}
+	if (rate.mut > 0 && runif(1) < rate.mut) {
+		mut.loc <- sample(seq_len(nrow(genotype), 1))
+		genotype[mut.loc,2] <- rnorm(1, mean=genotype[mut.loc,2], sd=sqrt(var.mut))
+	}
+	
+	list(
+		genotype  = genotype, 
+		genot.value= GPmap(genotype),
+		phenotype = get.phenotype(genotype, var.env),
+		fitness   = 1
+	)
+}
+
 update.fitness <- function(
 		population, 
 		sel.strength = default$sel.strength, 
@@ -151,6 +177,7 @@ reproduction <- function(
 	num.outcros <- pop.size - num.clones - num.selfers
 	
 	clones  <- sample(population, num.clones, prob=fitnesses, replace=TRUE)
+	clones  <- lapply(clones, make.clonal.offspring, var.env=var.env, rate.mut=rate.mut, var.mut=var.mut)
 	
 	parent.selfers <- sample(population, num.selfers, prob=fitnesses, replace=TRUE)
 	selfers <- lapply(parent.selfers, function(p) 
@@ -263,7 +290,7 @@ simulation1pop <- function(
 {
 	if (!is.null(input.file)) {
 		pop <- readRDS(input.file)
-		stopifnot(nrow(pop[[1]]$genotype) != num.loci) # Number of loci is the only parameter that cannot change
+		stopifnot(nrow(pop[[1]]$genotype) == num.loci) # Number of loci is the only parameter that cannot change
 	} else {
 		pop <- init.population(pop.size=pop.size, var.init=var.init, num.loci=num.loci, var.env=var.env)
 	}
@@ -400,8 +427,3 @@ simulation <- function(
 	}
 }
 
-# To run several repetitions, this command can be used
-rep = 10 #number of repetitions
-sims <- replicate(rep, simulation(), simplify=FALSE)
-# Uses function list.sim.means() defined at the begining. The variable meansims is a dataframe with the mean over the repetitions of each variable over time
-meansims<-list.sim.mean(sims)
