@@ -245,3 +245,39 @@ summary.population <- function(population) {
 
 In addition, the option output.file="file.rds" can be provided to the simulation so that the final population is stored in a .rds file (internal format to stort R objects). Therefore, summary=FALSE is never mandatory, as the population can be retrieved by readRDS() from the output file.
 
+## Code examples
+
+```{r}
+# Run a simulation
+s1 <- simulation(generations=20, pop.size=1000)
+
+# s1 is a data.frame tracking the evolution of the population
+head(s1)
+    phen.mean phen.var   gen.mean   gen.var  fit.mean   fit.var      sel.diff
+1  0.02388641 1.992135 0.02668777 1.0193897 0.5733783 0.1157158 -0.0078695807
+2 -0.01749457 1.874539 0.03146603 0.8602849 0.5907936 0.1099869  0.0073106962
+3  0.04127094 1.896728 0.03817701 0.8106886 0.6009933 0.1130402 -0.0480819267
+4 -0.04555095 1.711153 0.02541822 0.7517501 0.6075296 0.1098529  0.0018137856
+5  0.01933254 1.744701 0.04109299 0.8194891 0.6007816 0.1091351 -0.0007977639
+6  0.02401994 1.848087 0.03743467 0.7537498 0.5960803 0.1087571 -0.0346293013
+
+# Let's see how the population responds to selection
+s2 <- simulation(generations=30, pop.size=1000, sel.optimum=2.0)
+plot(s2$phen.mean, type="l", xlab="Generations", ylab="Phenotype")
+
+# Save the population and reuse it
+s3 <- simulation(generations=20, pop.size=1000, sel.optimum=1.0, output.file="s3.rds")
+s4 <- simulation(generations=10, pop.size=100,  sel.optimum=2.0, input.file="s3.rds")
+s3.4 <- rbind(s3, s4)
+plot(s3.4$phen.mean, type="l", xlab="Generations", ylab="Phenotype")
+
+# Replicate the evolutionary dynamics
+s5 <- simulation(generations=20, pop.size=100, sel.optimum=1.0, num.pop=3, rate.migr=0.0)
+plot(s5$phen.mean.1, type="l", xlab="Generations", ylab="Phenotype")
+lines(s5$phen.mean.2, col="blue")
+lines(s5$phen.mean.3, col="red")
+
+# Ananlyse the final population
+s6 <- simulation(generations=30, pop.size=1000, sel.optimum=2.0, summary=FALSE)
+hist(sapply(s6, "[[", "fitness"), xlab="Fitness", main="Fitness distribution")
+```
