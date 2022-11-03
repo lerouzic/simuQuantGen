@@ -172,7 +172,7 @@ reproduction <- function(
 {
 	# Returns the next generation
 	fitnesses <- sapply(population, "[[", "fitness")
-	num.clones  <- rbinom(1, pop.size, prob=pop.size*rate.clonal)
+	num.clones  <- rbinom(1, pop.size, prob=rate.clonal)
 	num.selfers <- rbinom(1, pop.size - num.clones, prob=if(rate.clonal == 1) 0 else rate.selfing/(1-rate.clonal))
 	num.outcros <- pop.size - num.clones - num.selfers
 	
@@ -187,7 +187,7 @@ reproduction <- function(
 			var.env  = var.env ,
 			rate.mut = rate.mut, 
 			var.mut  = var.mut, 
-			rate.rec = rate.rec),
+			rate.rec = rate.rec)
 		)
 	
 	parent.outcros1 <- sample(population, num.outcros, prob=fitnesses, replace=TRUE)
