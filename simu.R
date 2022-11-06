@@ -222,19 +222,19 @@ summary.population <- function(population) {
 }
 
 migration <- function(pops, rate.migr = default$rate.migr) {
-	npop <- length(pops)
-	stopifnot(npop > 1)
-	for (i in 1:(npop-1))
-		for (j in (i+1):npop) {
-			num.migr <- rpois(1, rate.migr * min(length(pops[[i]]), length(pops[[j]])))
-			if (num.migr == 0) next
-			from.i <- sample(1:length(pops[[i]]), num.migr, replace=FALSE)
-			from.j <- sample(1:length(pops[[j]]), num.migr, replace=FALSE)
-			tmp.pop <- pops[[i]][from.i]
-			pops[[i]][from.i] <- pops[[j]][from.j]
-			pops[[j]][from.j] <- tmp.pop
-		}
-	pops
+   npop <- length(pops)
+   stopifnot(npop > 1)
+   for (i in 1:(npop-1))
+     for (j in (i+1):npop) {
+       num.migr <- rbinom(1, min(length(pops[[i]]), length(pops[[j]])), rate.migr)
+       if (num.migr == 0) next
+       from.i <- sample(1:length(pops[[i]]), num.migr, replace=FALSE)
+       from.j <- sample(1:length(pops[[j]]), num.migr, replace=FALSE)
+       tmp.pop <- pops[[i]][from.i]
+       pops[[i]][from.i] <- pops[[j]][from.j]
+       pops[[j]][from.j] <- tmp.pop
+     }
+   pops
 }
 
 crosspopulations <- function(
