@@ -119,11 +119,11 @@ make.clonal.offspring <- function(
 	# Not very clean, but in order to keep exactly the same shortcomings as sexual reproduction 
 	# (when rate.mut is large for instance), the best is to repeat the mutation procedure twice
 	if (rate.mut > 0 && runif(1) < rate.mut) {
-		mut.loc <- sample(seq_len(nrow(genotype), 1))
+		mut.loc <- sample(seq_len(nrow(genotype)), 1)
 		genotype[mut.loc,1] <- rnorm(1, mean=genotype[mut.loc,1], sd=sqrt(var.mut))
 	}
 	if (rate.mut > 0 && runif(1) < rate.mut) {
-		mut.loc <- sample(seq_len(nrow(genotype), 1))
+		mut.loc <- sample(seq_len(nrow(genotype)), 1)
 		genotype[mut.loc,2] <- rnorm(1, mean=genotype[mut.loc,2], sd=sqrt(var.mut))
 	}
 	
