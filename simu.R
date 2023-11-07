@@ -5,7 +5,7 @@ default <- list(
 	num.loci     = 5, 
 	var.init     = 1.0, 
 	var.env      = 1.0, 
-	sel.strength = 1.0, 
+	sel.Vs       = 1.0, 
 	sel.optimum  = 0.0, 
 	rate.mut     = 0.0000, 
 	var.mut      = 1.0,
@@ -184,23 +184,23 @@ make.clonal.offspring <- function(
 
 update.fitness <- function(
 		population, 
-		sel.strength = default$sel.strength, 
+		sel.Vs       = default$sel.Vs, 
 		sel.optimum  = default$sel.optimum,
 		fitness      = default$fitness) 
 {
-	# if fitness=="truncation", abs(sel.strength) stands for the part of the population discarded (and the sign stands for the direction)
+	# if fitness=="truncation", abs(sel.Vs) stands for the part of the population discarded (and the sign stands for the direction)
 	
 	# Returns a new population object with updated fitnesses. 
 
 	if (fitness == "gaussian") {
-		lapply(population, function(indiv) { indiv$fitness <- exp(-(indiv$phenotype-sel.optimum)^2 / 2 / sel.strength); indiv })
+		lapply(population, function(indiv) { indiv$fitness <- exp(-(indiv$phenotype-sel.optimum)^2 / 2 / sel.Vs); indiv })
 	} else if (fitness == "truncation") {
 		pp  <- sapply(population, "[[", "phenotype")
-		if (sel.strength > 0) {
-			thr <- quantile(pp, probs=sel.strength)
+		if (sel.Vs > 0) {
+			thr <- quantile(pp, probs=sel.Vs)
 			lapply(population, function(indiv) { indiv$fitness <- if (indiv$phenotype >= thr) 1.0 else 0.0; indiv })
 		} else {
-			thr <- quantile(pp, probs=1-abs(sel.strength))
+			thr <- quantile(pp, probs=1-abs(sel.Vs))
 			lapply(population, function(indiv) { indiv$fitness <- if (indiv$phenotype <= thr) 1.0 else 0.0; indiv })
 		}
 	}
@@ -292,7 +292,7 @@ crosspopulations <- function(
 		numcross     = length(pop1), 
 		var.env      = default$var.env,
 		rate.rec     = default$rate.rec,
-		sel.strength = default$sel.strength,
+		sel.Vs       = default$sel.Vs,
 		sel.optimum  = default$sel.optimum,
 		fitness      = default$fitness,
 		summary      = TRUE)
@@ -310,7 +310,7 @@ crosspopulations <- function(
 					rate.rec = rate.rec)
 				},
 		simplify=FALSE)
-	cross <- update.fitness(cross, sel.strength, sel.optimum, fitness)
+	cross <- update.fitness(cross, sel.Vs, sel.optimum, fitness)
 	
 	if (summary) {
 		summary.population(cross)
@@ -325,7 +325,7 @@ simulation1pop <- function(
 		num.loci     = default$num.loci, 
 		var.init     = default$var.init, 
 		var.env      = default$var.env, 
-		sel.strength = default$sel.strength, 
+		sel.Vs       = default$sel.Vs, 
 		sel.optimum  = default$sel.optimum, 
 		rate.mut     = default$rate.mut, 
 		var.mut      = default$var.mut, 
@@ -346,7 +346,7 @@ simulation1pop <- function(
 	}
 	summ <- data.frame()
 	for (gg in 1:generations) {
-		pop <- update.fitness(pop, sel.strength, sel.optimum, fitness)
+		pop <- update.fitness(pop, sel.Vs, sel.optimum, fitness)
 		if (summary) 
 			summ <- rbind(summ, summary.population(pop))
 		if (gg < generations)
@@ -376,7 +376,7 @@ simulationNpop <- function(
 		num.loci     = default$num.loci, 
 		var.init     = default$var.init, 
 		var.env      = default$var.env, 
-		sel.strength = default$sel.strength, 
+		sel.Vs       = default$sel.Vs, 
 		sel.optimum  = default$sel.optimum, 
 		rate.mut     = default$rate.mut, 
 		var.mut      = default$var.mut, 
@@ -399,7 +399,7 @@ simulationNpop <- function(
 	}
 	summ <- data.frame()
 	for (gg in 1:generations) {
-		pops <- lapply(pops, function(pop) update.fitness(pop, sel.strength, sel.optimum, fitness))
+		pops <- lapply(pops, function(pop) update.fitness(pop, sel.Vs, sel.optimum, fitness))
 		if (summary) 
 			summ <- rbind(summ, do.call(cbind, lapply(pops, summary.population)))
 		if (gg < generations)
@@ -437,7 +437,7 @@ simulation <- function(
 		num.loci     = default$num.loci, 
 		var.init     = default$var.init, 
 		var.env      = default$var.env, 
-		sel.strength = default$sel.strength, 
+		sel.Vs       = default$sel.Vs, 
 		sel.optimum  = default$sel.optimum, 
 		rate.mut     = default$rate.mut, 
 		var.mut      = default$var.mut, 
@@ -466,7 +466,7 @@ simulation <- function(
 		rate.clonal  >= 0.0, rate.clonal  <= 1.0,
 		rate.selfing + rate.clonal <= 1.0,
 		fitness %in% c("gaussian", "truncation"),
-		fitness == "gaussian" || (sel.strength >= -1.0 && sel.strength <= 1.0),
+		fitness == "gaussian" || (sel.Vs >= -1.0 && sel.Vs <= 1.0),
 		num.pop      >= 1, 
 		rate.migr    >= 0.0, rate.migr <= 1.0) 
 		
@@ -474,10 +474,10 @@ simulation <- function(
 	
 	if (num.pop == 1) {
 		simulation1pop(
-			generations, pop.size, num.loci, var.init, var.env, sel.strength, sel.optimum, rate.mut, var.mut, rate.rec, rate.selfing, rate.clonal, fitness, optim, input.file, output.file, summary)
+			generations, pop.size, num.loci, var.init, var.env, sel.Vs, sel.optimum, rate.mut, var.mut, rate.rec, rate.selfing, rate.clonal, fitness, optim, input.file, output.file, summary)
 	} else {
 		simulationNpop(
-		generations, pop.size, num.loci, var.init, var.env, sel.strength, sel.optimum, rate.mut, var.mut, rate.rec, rate.selfing, rate.clonal, num.pop, rate.migr, fitness, optim, input.file, output.file, summary)
+		generations, pop.size, num.loci, var.init, var.env, sel.Vs, sel.optimum, rate.mut, var.mut, rate.rec, rate.selfing, rate.clonal, num.pop, rate.migr, fitness, optim, input.file, output.file, summary)
 	}
 }
 

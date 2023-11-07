@@ -11,7 +11,7 @@ default <- list(
 	num.loci     = 5, 
 	var.init     = 1.0, 
 	var.env      = 1.0, 
-	sel.strength = 1.0, 
+	sel.Vs       = 1.0, 
 	sel.optimum  = 0.0, 
 	rate.mut     = 0.0000, 
 	var.mut      = 1.0,
@@ -79,32 +79,32 @@ get.phenotype <- function(
 ## Fitness
 
 There are two families of fitness functions,
-* fitness ==  "gaussian" defines fitness as a bell-shaped stabilizing function, defined by its optimum (the phenotype for which fitness == 1) and the selection strength (the variance of the fitness curve, i.e. large values correspond to small selection). 
+* fitness ==  "gaussian" defines fitness as a bell-shaped stabilizing function, defined by its optimum (the phenotype for which fitness == 1) and the selection strength Vs (the variance of the fitness curve, i.e. large values correspond to small selection). 
 
-$$ w(z) = \exp ( -\frac{1}{2} \frac{(z - \text{sel.optimum})^2}{\text{sel.strength}} ) $$
+$$ w(z) = \exp ( -\frac{1}{2} \frac{(z - \text{sel.optimum})^2}{\text{sel.Vs}} ) $$
 
-* fitness == "truncation" implements truncation selection, a procedure often associated with artificial selection. All individuals above or below a threshold are kept, all the others are discarded. The proportion of individuals discarded is given by sel.strength (sel.strength = 0: no selection, sel.strength = 1: no one survives), the sign of sel.strength defines the direction of selection (if negative, individuals with the lowest phenotype are kept). 
+* fitness == "truncation" implements truncation selection, a procedure often associated with artificial selection. All individuals above or below a threshold are kept, all the others are discarded. The proportion of individuals discarded is given by sel.Vs (sel.Vs = 0: no selection, sel.Vs = 1: no one survives), the sign of sel.Vs defines the direction of selection (if negative, individuals with the lowest phenotype are kept). 
 
 ```{r}
 update.fitness <- function(
 		population, 
-		sel.strength = default$sel.strength, 
+		sel.Vs       = default$sel.Vs, 
 		sel.optimum  = default$sel.optimum,
 		fitness      = default$fitness) 
 {
-	# if fitness=="truncation", abs(sel.strength) stands for the part of the population discarded (and the sign stands for the direction)
+	# if fitness=="truncation", abs(sel.Vs) stands for the part of the population discarded (and the sign stands for the direction)
 	
 	# Returns a new population object with updated fitnesses. 
 
 	if (fitness == "gaussian") {
-		lapply(population, function(indiv) { indiv$fitness <- exp(-(indiv$phenotype-sel.optimum)^2 / 2 / sel.strength); indiv })
+		lapply(population, function(indiv) { indiv$fitness <- exp(-(indiv$phenotype-sel.optimum)^2 / 2 / sel.Vs); indiv })
 	} else if (fitness == "truncation") {
 		pp  <- sapply(population, "[[", "phenotype")
-		if (sel.strength > 0) {
-			thr <- quantile(pp, probs=sel.strength)
+		if (sel.Vs > 0) {
+			thr <- quantile(pp, probs=sel.Vs)
 			lapply(population, function(indiv) { indiv$fitness <- if (indiv$phenotype >= thr) 1.0 else 0.0; indiv })
 		} else {
-			thr <- quantile(pp, probs=1-abs(sel.strength))
+			thr <- quantile(pp, probs=1-abs(sel.Vs))
 			lapply(population, function(indiv) { indiv$fitness <- if (indiv$phenotype <= thr) 1.0 else 0.0; indiv })
 		}
 	}
@@ -117,7 +117,7 @@ The simulation loop consists in calling the reproduction() routine recursively u
 
 ```{r}
 for (gg in 1:generations) {
-		pop <- update.fitness(pop, sel.strength, sel.optimum, fitness)
+		pop <- update.fitness(pop, sel.Vs, sel.optimum, fitness)
 		if (summary) 
 			summ <- rbind(summ, summary.population(pop))
 		if (gg < generations)
