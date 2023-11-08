@@ -125,11 +125,9 @@ make.gamete <- function(
 		rate.rec = default$rate.rec, 
 		optim    = default$optim)
 {
-	FUN.gamete <- 
-		switch(optim, 
-			"none"   = make.gamete.R, 
-			"cmpfun" = make.gamete.cmpfun, 
-			"c++"    = makeGameteCPP)
+	FUN.gamete <- make.gamete.R
+	if (optim == "cmpfun") FUN.gamete <- make.gamete.cmpfun
+	if (optim == "c++")    FUN.gamete <- makeGameteCPP
 	FUN.gamete(indiv, rate.mut, var.mut, rate.rec)
 } 	 
 
