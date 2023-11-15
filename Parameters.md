@@ -7,7 +7,7 @@ source("simu.R")
 set.seed(2)
 ```
 
-Let's explore Population Size. Here we choose 3 values, 10, 100, 1000. We consider 50 generations, 100 loci, and a selection optimum of 10. First, we consider no selection by setting the sel.strength to Inf. The parameter sel.strength actually represets the inverse of the strength of selection (i.e. the greater it is, the weaker the strength of selection). We can follow th response to selection by following the evolution of the phenotypic mean across generations. With sel.strength = Inf, there should be no selection response.  
+Let's explore Population Size. Here we choose 3 values, 10, 100, 1000. We consider 50 generations, 100 loci, and a selection optimum of 10. First, we consider no selection by setting the sel.Vs to Inf. The parameter sel.Vs actually represets the inverse of the strength of selection (i.e. the greater it is, the weaker the strength of selection). We can follow th response to selection by following the evolution of the phenotypic mean across generations. With sel.Vs = Inf, there should be no selection response.  
 
 
 ```{r}
@@ -16,7 +16,7 @@ PopSize<-c(10,100,1000)
 for (i in 1:length(PopSize)) {
   current_PopSize <- PopSize[i]
   current_name <- paste0("PopSize_",current_PopSize)
-  current_simu <- simulation(generations=50,pop.size=current_PopSize,num.loci=100,var.init=1,var.env=1,sel.strength=Inf,sel.optimum=10)
+  current_simu <- simulation(generations=50,pop.size=current_PopSize,num.loci=100,var.init=1,var.env=1,sel.Vs=Inf,sel.optimum=10)
   assign(current_name,current_simu)
   rm(current_simu)
 }
@@ -45,7 +45,7 @@ legend("bottomright", lty=1, col=1:length(PopSize), legend=paste0("N=", PopSize)
 
 The genetic variance remains around the initial value for N=100 and N=1000, but presents greater fluctuations for N=100 than for N=1000. As for N=10, drift exhausts the initial genetic variance. Indeed, we know from theory that the decrease of genetic variance over time can be written Va(t) = Va(0) (1-1/2N)^t (neutral case). Hence the greater N, the smaller the change in Va (the additive genetic variance) between time t and t+1.
 
-Let's now explore the effect of Population Size with selection (sel.strength set to 5). We expect two phases: first directional selection towards the optimum and subsequently stabilizing selection. We look at the selection response (phenotypic mean across generations) to depict these two phases.
+Let's now explore the effect of Population Size with selection (sel.Vs set to 5). We expect two phases: first directional selection towards the optimum and subsequently stabilizing selection. We look at the selection response (phenotypic mean across generations) to depict these two phases.
 
 
 
@@ -55,7 +55,7 @@ PopSize<-c(10,100,1000)
 for (i in 1:length(PopSize)) {
   current_PopSize <- PopSize[i]
   current_name <- paste0("PopSize_",current_PopSize)
-  current_simu <- simulation(generations=50,pop.size=current_PopSize,num.loci=100,var.init=1,var.env=1,sel.strength=5,sel.optimum=10)
+  current_simu <- simulation(generations=50,pop.size=current_PopSize,num.loci=100,var.init=1,var.env=1,sel.Vs=5,sel.optimum=10)
   assign(current_name,current_simu)
   rm(current_simu)
 }
@@ -85,7 +85,7 @@ legend("topright", lty=1, col=1:length(PopSize), legend=paste0("N=", PopSize))
 
 You see in this graph that the genetic variance is rapidly exhausted at N=10: after 20 generations there is very little variance left. That is why after 20 generations, this population can no longer respond to selection. The speed of the exhaustion of the genetic variance depends on the population size. 
 
-Note that increasing the selection of strength (sel.strength = 0.1) depletes the genetic variance rapidly, limiting the response to selection and the optimum of 10 is never reached. The mechanisms behind this are discussed in more detail below.
+Note that increasing the selection of strength (sel.Vs = 0.1) depletes the genetic variance rapidly, limiting the response to selection and the optimum of 10 is never reached. The mechanisms behind this are discussed in more detail below.
 
 
 ```{r}
@@ -93,7 +93,7 @@ PopSize<-c(10,100,1000)
 for (i in 1:length(PopSize)) {
   current_PopSize <- PopSize[i]
   current_name <- paste0("PopSize_",current_PopSize)
-  current_simu <- simulation(generations=50,pop.size=current_PopSize,num.loci=100,var.init=1,var.env=1,sel.strength=0.1,sel.optimum=10)
+  current_simu <- simulation(generations=50,pop.size=current_PopSize,num.loci=100,var.init=1,var.env=1,sel.Vs=0.1,sel.optimum=10)
   assign(current_name,current_simu)
   rm(current_simu)
 }
@@ -108,14 +108,14 @@ legend("bottomright", lty=1, col=1:length(PopSize), legend=paste0("N=", PopSize)
 ```
 
 
-We now explore the effect of the number of loci. Here we choose 3 values, 1, 50, 100 loci. We consider 50 generations, a population size of 100, and a selection optimum of 10, and sel.strength = 5.
+We now explore the effect of the number of loci. Here we choose 3 values, 1, 50, 100 loci. We consider 50 generations, a population size of 100, and a selection optimum of 10, and sel.Vs = 5.
 
 ```{r}
 NbLocus<-c(1,10,100)
 for (i in 1:length(NbLocus)) {
   current_NbLocus <- NbLocus[i]
   current_name <- paste0("NbLocus_",current_NbLocus)
-  current_simu <- simulation(generations=50,pop.size=100,current_NbLocus,var.init=1,var.env=1,sel.strength=5,sel.optimum=10)
+  current_simu <- simulation(generations=50,pop.size=100,current_NbLocus,var.init=1,var.env=1,sel.Vs=5,sel.optimum=10)
   assign(current_name,current_simu)
   rm(current_simu)
 }
@@ -145,7 +145,7 @@ legend("bottomright", lty=1, col=1:length(NbLocus), legend=paste0("NbLocus=", Nb
 
 With more loci, we approach the infinitesimal model: genetic variance is maintained through time.
 
-Now let's have a look at the initial genetic variance. We again consider 50 generations, 100 individuals, 100 loci, sel.strength = 5 and a selection optimum of 8. With no genetic variance, we expect no selection response. How does the amount of initial genetic variance impact the time needed to reach the optimum?
+Now let's have a look at the initial genetic variance. We again consider 50 generations, 100 individuals, 100 loci, sel.Vs = 5 and a selection optimum of 8. With no genetic variance, we expect no selection response. How does the amount of initial genetic variance impact the time needed to reach the optimum?
 
 
 ```{r}
@@ -154,7 +154,7 @@ VarInit<-c(0,1,2,3,4)
 for (i in 1:length(VarInit)) {
   current_VarInit <- VarInit[i]
   current_name <- paste0("VarInit_",current_VarInit)
-  current_simu <- simulation(generations=50,pop.size=100,num.loci=100,current_VarInit,var.env=1,sel.strength=5,sel.optimum=8)
+  current_simu <- simulation(generations=50,pop.size=100,num.loci=100,current_VarInit,var.env=1,sel.Vs=5,sel.optimum=8)
   assign(current_name,current_simu)
   rm(current_simu)
 }
@@ -189,7 +189,7 @@ SelOpt<-c(0,2,4,6,8,10)
 for (i in 1:length(SelOpt)) {
   current_SelOpt <- SelOpt[i]
   current_name <- paste0("SelOpt_",current_SelOpt)
-  current_simu <- simulation(generations=50,pop.size=100,num.loci=100,var.init=1,var.env=1,sel.strength=5,current_SelOpt)
+  current_simu <- simulation(generations=50,pop.size=100,num.loci=100,var.init=1,var.env=1,sel.Vs=5,current_SelOpt)
   assign(current_name,current_simu)
   rm(current_simu)
 }
@@ -219,7 +219,7 @@ legend("bottomright", lty=1, col=1:length(SelOpt), legend=paste0("SelOpt=", SelO
 ```
 We indeed find that the initial fitness is lower for an optimum of 10 than for an optimum of 8, 6 etc.. 
 
-Let's look now at the strength of selection through the parameter "sel.strength".
+Let's look now at the strength of selection through the parameter "sel.Vs".
 
 ```{r}
 
@@ -241,7 +241,7 @@ for (i in 1:length(SelStr))
 legend("bottomright", lty=1, col=1:length(SelStr), legend=paste0("SelStr=", SelStr))
 ```
 
-We see here an interesting pattern where the optimum is reached only for intermediate values of sel.strength (10 and 5). In absence of selection, the phenotype remains around its initial value and when the selection strength is too high, the best haplotypes present in the first generations are rapidly fixed, and no variability is left to create new haplotypes through recombination. In other words, we have here a trade off between the speed of the response and the capacity of the population to reach the optimum: with strong selection strength, the response is fast but limited; with mild selection strength, the response is slow but the population eventually reaches the optimum. The dynamics of the exhaustion of the genetic variance are illustrated below. 
+We see here an interesting pattern where the optimum is reached only for intermediate values of sel.Vs (10 and 5). In absence of selection, the phenotype remains around its initial value and when the selection strength is too high, the best haplotypes present in the first generations are rapidly fixed, and no variability is left to create new haplotypes through recombination. In other words, we have here a trade off between the speed of the response and the capacity of the population to reach the optimum: with strong selection strength, the response is fast but limited; with mild selection strength, the response is slow but the population eventually reaches the optimum. The dynamics of the exhaustion of the genetic variance are illustrated below. 
 
 
 
@@ -256,7 +256,7 @@ legend("bottomright", lty=1, col=1:length(SelStr), legend=paste0("SelStr=", SelS
 
 ```
 
-As predicted we observe no genetic variance for strong selection (sel.strength = 1 and 0.1), while variance is maintained for all other strengths of selection.
+As predicted we observe no genetic variance for strong selection (sel.Vs = 1 and 0.1), while variance is maintained for all other strengths of selection.
 
 
 
