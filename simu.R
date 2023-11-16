@@ -295,6 +295,9 @@ crosspopulations <- function(
 		fitness      = default$fitness,
 		summary      = TRUE)
 {
+	stopifnot(length(pop1) > 0, length(pop2) > 0, 
+	          nrow(pop1[[1]]$genotype) == nrow(pop2[[1]]$genotype))
+	rate.rec <- rep_len(rate.rec, nrow(pop1[[1]]$genotype) - 1)
 	cross <- replicate(numcross, 
 		expr= {
 				parent1 <- unlist(sample(pop1, 1), recursive=FALSE)
