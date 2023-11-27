@@ -416,7 +416,7 @@ simulationNpop <- function(
 	for (gg in 1:generations) {
 		pops <- lapply(seq_len(num.pop), function(i) update.fitness(pops[[i]], sel.Vs[i], sel.optimum[i], fitness[i]))
 		if (summary) 
-			summ <- rbind(summ, do.call(cbind, lapply(pops, summary.population)))
+			summ <- rbind(summ, cbind(do.call(cbind, lapply(pops, summary.population)), summary.population(unlist(pops, recursive=FALSE))))
 		if (gg < generations)
 			pops <- lapply(seq_len(num.pop), function(i) reproduction(
 						pops[[i]], 
@@ -437,7 +437,7 @@ simulationNpop <- function(
 			saveRDS(pops[[ii]], output.file[ii])
 	}
 	if (summary) {
-		colnames(summ) <- paste0(colnames(summ), ".", rep(1:num.pop, each=ncol(summ)/num.pop))
+		colnames(summ) <- paste0(colnames(summ), ".", rep(c(as.character(1:num.pop), "All"), each=ncol(summ)/(num.pop+1)))
 		summ
 	} else {
 		pops
