@@ -266,12 +266,12 @@ s4 <- simulation(generations=20, pop.size=100,  sel.optimum=0.0, input.pop=s3)
 plot(s4$phen.mean, type="l", xlab="Generations", ylab="Phenotype")
 
 # Replicate the evolutionary dynamics
-s5 <- simulation(generations=20, pop.size=100, sel.optimum=1.0, num.pop=3, rate.migr=0.0)
+s5 <- simulation(generations=20, pop.size=100, sel.optimum=c(3.0, 2.0, 1.0), num.pop=3, rate.migr=0.0)
 plot(s5$phen.mean.1, type="l", xlab="Generations", ylab="Phenotype")
 lines(s5$phen.mean.2, col="blue")
 lines(s5$phen.mean.3, col="red")
 
 # Ananlyse the final population
-s6 <- simulation(generations=30, pop.size=1000, sel.optimum=2.0, summary=FALSE)
-hist(sapply(s6, "[[", "fitness"), xlab="Fitness", main="Fitness distribution")
+s6 <- simulation(generations=30, pop.size=1000, sel.optimum=2.0, output.pop=TRUE)
+hist(sapply(attr(s6, "lastpop"), "[[", "fitness"), xlab="Fitness", main="Fitness distribution")
 ```
