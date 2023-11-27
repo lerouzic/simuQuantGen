@@ -481,7 +481,7 @@ simulation <- function(
 		rate.clonal  >= 0.0, rate.clonal  <= 1.0,
 		rate.selfing + rate.clonal <= 1.0,
 		fitness %in% c("gaussian", "truncation"),
-		fitness == "gaussian" || (sel.Vs >= -1.0 && sel.Vs <= 1.0),
+		fitness == "gaussian" | (sel.Vs >= -1.0 & sel.Vs <= 1.0),
 		num.pop      >= 1, 
 		rate.migr    >= 0.0, rate.migr <= 1.0) 
 		
