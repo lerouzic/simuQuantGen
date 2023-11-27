@@ -15,7 +15,7 @@ default <- list(
 	num.pop      = 1,
 	rate.migr    = 0.0,
 	fitness      = "gaussian",
-	optim        = "none" # coulf be "cmpfun" or "c++"
+	optimization = "none" # coulf be "cmpfun" or "c++"
 )
 
 # Function to get mean of repetitions
@@ -123,11 +123,11 @@ make.gamete <- function(
 		rate.mut = default$rate.mut, 
 		var.mut  = default$var.mut,
 		rate.rec = default$rate.rec, 
-		optim    = default$optim)
+		optimization = default$optimization)
 {
 	FUN.gamete <- make.gamete.R
-	if (optim == "cmpfun") FUN.gamete <- make.gamete.cmpfun
-	if (optim == "c++")    FUN.gamete <- makeGameteCPP
+	if (optimization == "cmpfun") FUN.gamete <- make.gamete.cmpfun
+	if (optimization == "c++")    FUN.gamete <- makeGameteCPP
 	FUN.gamete(indiv, rate.mut, var.mut, rate.rec)
 } 	 
 
@@ -139,12 +139,12 @@ make.offspring <- function(
 		rate.mut = default$rate.mut, 
 		var.mut  = default$var.mut, 
 		rate.rec = default$rate.rec,
-		optim    = default$optim) 
+		optimization = default$optimization) 
 {
 	# Makes an individual out of two parents. 
 	genotype <- cbind(
-		make.gamete(mother, rate.mut, var.mut, rate.rec, optim),
-		make.gamete(father, rate.mut, var.mut, rate.rec, optim))
+		make.gamete(mother, rate.mut, var.mut, rate.rec, optimization),
+		make.gamete(father, rate.mut, var.mut, rate.rec, optimization))
 
 	list(
 		genotype  = genotype, 
@@ -214,7 +214,7 @@ reproduction <- function(
 		rate.rec     = default$rate.rec,
 		rate.selfing = default$rate.selfing,
 		rate.clonal  = default$rate.clonal, 
-		optim        = default$optim) 
+		optimization = default$optimization) 
 {
 	# Returns the next generation
 	fitnesses <- sapply(population, "[[", "fitness")
@@ -246,7 +246,7 @@ reproduction <- function(
 			rate.mut = rate.mut, 
 			var.mut  = var.mut, 
 			rate.rec = rate.rec, 
-			optim    = optim),
+			optimization = optimization),
 		SIMPLIFY=FALSE)
 	
 	return(c(clones, selfers, outcros)) # The order is not expected to matter
@@ -334,7 +334,7 @@ simulation1pop <- function(
 		rate.selfing = default$rate.selfing,
 		rate.clonal  = default$rate.clonal,
 		fitness      = default$fitness,
-		optim        = default$optim,
+		optimization = default$optimization,
 		input.file   = NULL, 
 		output.file  = NULL,
 		summary      = TRUE) 
@@ -360,7 +360,7 @@ simulation1pop <- function(
 						rate.rec     = rate.rec, 
 						rate.selfing = rate.selfing, 
 						rate.clonal  = rate.clonal, 
-						optim        = optim)
+						optimization = optimization)
 	}
 	if (!is.null(output.file))
 		saveRDS(pop, output.file)
@@ -387,7 +387,7 @@ simulationNpop <- function(
 		num.pop      = default$num.pop,
 		rate.migr    = default$rate.migr,
 		fitness      = default$fitness,
-		optim        = default$optim,
+		optimization = default$optimization,
 		input.file   = NULL, 
 		output.file  = NULL,
 		summary      = TRUE) 
@@ -427,7 +427,7 @@ simulationNpop <- function(
 						rate.rec     = rate.rec, 
 						rate.selfing = rate.selfing[i], 
 						rate.clonal  = rate.clonal[i], 
-						optim        = optim)
+						optimization = optimization)
 					)
 			pops <- migration(pops, rate.migr)
 	}
@@ -462,7 +462,7 @@ simulation <- function(
 		num.pop      = default$num.pop,
 		rate.migr    = default$rate.migr,
 		fitness      = default$fitness, # can be "gaussian" or "truncation"
-		optim        = default$optim,   # can be "none", "cmpfun", or "c++"
+		optimization = default$optimization,   # can be "none", "cmpfun", or "c++"
 		input.file   = NULL, 
 		output.file  = NULL,
 		summary      = TRUE) 
@@ -489,10 +489,10 @@ simulation <- function(
 	
 	if (num.pop == 1) {
 		simulation1pop(
-			generations, pop.size, num.loci, var.init, var.env, sel.Vs, sel.optimum, rate.mut, var.mut, rate.rec, rate.selfing, rate.clonal, fitness, optim, input.file, output.file, summary)
+			generations, pop.size, num.loci, var.init, var.env, sel.Vs, sel.optimum, rate.mut, var.mut, rate.rec, rate.selfing, rate.clonal, fitness, optimization, input.file, output.file, summary)
 	} else {
 		simulationNpop(
-		generations, pop.size, num.loci, var.init, var.env, sel.Vs, sel.optimum, rate.mut, var.mut, rate.rec, rate.selfing, rate.clonal, num.pop, rate.migr, fitness, optim, input.file, output.file, summary)
+		generations, pop.size, num.loci, var.init, var.env, sel.Vs, sel.optimum, rate.mut, var.mut, rate.rec, rate.selfing, rate.clonal, num.pop, rate.migr, fitness, optimization, input.file, output.file, summary)
 	}
 }
 
