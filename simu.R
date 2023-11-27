@@ -392,27 +392,41 @@ simulationNpop <- function(
 		output.file  = NULL,
 		summary      = TRUE) 
 {
+	# Parameters that can be vectorized (one value for each population)
+	pop.size    <- rep(pop.size,    length.out=num.pop)
+	var.init    <- rep(var.init,    length.out=num.pop)
+	var.env     <- rep(var.env,     length.out=num.pop)
+	sel.Vs      <- rep(sel.Vs,      length.out=num.pop)
+	sel.optimum <- rep(sel.optimum, length.out=num.pop)
+	rate.mut    <- rep(rate.mut,    length.out=num.pop)
+	var.mut     <- rep(var.mut,     length.out=num.pop)
+	rate.selfing<- rep(rate.selfing,length.out=num.pop)
+	rate.clonal <- rep(rate.clonal, length.out=num.pop)
+	fitness     <- rep(fitness,     length.out=num.pop)
+	# rate.rec    <- rep(rate.rec,    length.out=num.pop) # Not possible yet, already a vector over loci
+	 
 	if (!is.null(input.file)) {
 		stopifnot(length(input.file) == num.pop)
 		pops <- lapply(input.file, readRDS)
 	} else {
-		pops <- replicate(num.pop, init.population(pop.size=pop.size, var.init=var.init, num.loci=num.loci, var.env=var.env), simplify=FALSE)
+		pops <- lapply(seq_len(num.pop), function(i) init.population(pop.size=pop.size[i], var.init=var.init[i], num.loci=num.loci, var.env=var.env[i]))
 	}
+	
 	summ <- data.frame()
 	for (gg in 1:generations) {
-		pops <- lapply(pops, function(pop) update.fitness(pop, sel.Vs, sel.optimum, fitness))
+		pops <- lapply(seq_len(num.pop), function(i) update.fitness(pops[[i]], sel.Vs[i], sel.optimum[i], fitness[i]))
 		if (summary) 
 			summ <- rbind(summ, do.call(cbind, lapply(pops, summary.population)))
 		if (gg < generations)
-			pops <- lapply(pops, function(pop) reproduction(
-						pop, 
-						pop.size     = pop.size, 
-						var.env      = var.env, 
-						rate.mut     = rate.mut, 
-						var.mut      = var.mut, 
+			pops <- lapply(seq_len(num.pop), function(i) reproduction(
+						pops[[i]], 
+						pop.size     = pop.size[i], 
+						var.env      = var.env[i], 
+						rate.mut     = rate.mut[i], 
+						var.mut      = var.mut[i], 
 						rate.rec     = rate.rec, 
-						rate.selfing = rate.selfing, 
-						rate.clonal  = rate.clonal, 
+						rate.selfing = rate.selfing[i], 
+						rate.clonal  = rate.clonal[i], 
 						optim        = optim)
 					)
 			pops <- migration(pops, rate.migr)
