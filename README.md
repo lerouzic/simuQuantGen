@@ -35,14 +35,14 @@ Simulations are individual-based, each individual is characterized by:
 ```{r}
 $genotype
              [,1]       [,2]
-[1,]  0.165269918  0.3327662
-[2,] -0.311125551  0.1121897
-[3,] -0.007350267  0.1664419
-[4,] -0.262891807 -0.1919904
-[5,] -0.007323414 -0.4895492
+[1,]  0.3327662   0.3327662
+[2,] -0.3111255   0.1121897
+[3,] -0.0073502   0.1664419
+[4,] -0.1919904  -0.1919904
+[5,] -0.0073234 - 0.4895492
 
 $genot.value
-[1] -0.493563
+[1] -0.2551651
 
 $phenotype
 [1] -0.7695404
@@ -116,10 +116,9 @@ update.fitness <- function(
 The simulation loop consists in calling the reproduction() routine recursively up to the number of desired generations.
 
 ```{r}
-for (gg in 1:generations) {
+	for (gg in 1:generations) {
 		pop <- update.fitness(pop, sel.Vs, sel.optimum, fitness)
-		if (summary) 
-			summ <- rbind(summ, summary.population(pop))
+		summ <- rbind(summ, summary.population(pop))
 		if (gg < generations)
 			pop <- reproduction(
 						pop, 
@@ -129,7 +128,8 @@ for (gg in 1:generations) {
 						var.mut      = var.mut, 
 						rate.rec     = rate.rec, 
 						rate.selfing = rate.selfing, 
-						rate.clonal  = rate.clonal)
+						rate.clonal  = rate.clonal, 
+						optimization = optimization)
 	}
 ```
 
@@ -213,8 +213,7 @@ Two procedures to initialize the population.
 
 ## Simulation output
 
-After having run for the requested number of generations, the simulation stops. The variable returned by the simulation routine depends on the option "summary".
-* summary=TRUE returns a data.frame with, for each generation, the average and the variance of a series of indicators:
+After having run for the requested number of generations, the simulation stops. The variable returned by the simulation routine is a data.frame with, for each generation, the average and the variance of a series of indicators:
 	* phen.mean : the phenotypic mean
 	* phen.var  : the phenotypic variance
 	* gen.mean  : the genetic mean
@@ -239,11 +238,7 @@ summary.population <- function(population) {
 	)
 }
 ```
-
-
-* summary = FALSE returns the population. 
-
-In addition, the option output.file="file.rds" can be provided to the simulation so that the final population is stored in a .rds file (internal format to stort R objects). Therefore, summary=FALSE is never mandatory, as the population can be retrieved by readRDS() from the output file.
+With the option output.pop=TRUE, the population from the last generation will be embedded as an attribute in the simulation output. It can then be used to start a new simulation, with the input.pop argument.
 
 ## Code examples
 
@@ -265,11 +260,10 @@ head(s1)
 s2 <- simulation(generations=30, pop.size=1000, sel.optimum=2.0)
 plot(s2$phen.mean, type="l", xlab="Generations", ylab="Phenotype")
 
-# Save the population and reuse it
-s3 <- simulation(generations=20, pop.size=1000, sel.optimum=1.0, output.file="s3.rds")
-s4 <- simulation(generations=10, pop.size=100,  sel.optimum=2.0, input.file="s3.rds")
-s3.4 <- rbind(s3, s4)
-plot(s3.4$phen.mean, type="l", xlab="Generations", ylab="Phenotype")
+# Reuse the population to start a new simulation
+s3 <- simulation(generations=20, pop.size=1000, sel.optimum=1.0, output.pop=TRUE)
+s4 <- simulation(generations=20, pop.size=100,  sel.optimum=0.0, input.pop=s3)
+plot(s4$phen.mean, type="l", xlab="Generations", ylab="Phenotype")
 
 # Replicate the evolutionary dynamics
 s5 <- simulation(generations=20, pop.size=100, sel.optimum=1.0, num.pop=3, rate.migr=0.0)

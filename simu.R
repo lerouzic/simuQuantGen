@@ -284,6 +284,22 @@ migration <- function(pops, rate.migr = default$rate.migr) {
    pops
 }
 
+clean.inpop <- function(obj) {
+	# Tries to find a proper population in object obj
+	if (is.list(obj)) {
+		if (is.data.frame(obj)) {
+			pp <- attr(obj, "lastpop")
+			if (is.null(pp)) {
+				stop("Impossible to find a population in the provided object. Have you forgotten the output.pop=TRUE option?")
+			} 
+			return(pp)
+		}
+		return(obj) # Hoping that the list can be interpreted as a population, otherwise the crash will happen later. 
+	} else {
+		stop("The object cannot be interpreted as a population")
+	}
+}
+
 crosspopulations <- function(
 		pop1, 
 		pop2, 
@@ -293,8 +309,10 @@ crosspopulations <- function(
 		sel.Vs       = default$sel.Vs,
 		sel.optimum  = default$sel.optimum,
 		fitness      = default$fitness,
-		summary      = TRUE)
+		output.pop   = FALSE) 
 {
+	pop1 <- clean.inpop(pop1)
+	pop2 <- clean.inpop(pop2)
 	stopifnot(length(pop1) > 0, length(pop2) > 0, 
 	          nrow(pop1[[1]]$genotype) == nrow(pop2[[1]]$genotype))
 	rate.rec <- rep_len(rate.rec, nrow(pop1[[1]]$genotype) - 1)
@@ -313,11 +331,10 @@ crosspopulations <- function(
 		simplify=FALSE)
 	cross <- update.fitness(cross, sel.Vs, sel.optimum, fitness)
 	
-	if (summary) {
-		summary.population(cross)
-	} else {
-		cross
-	}
+	summ <- summary.population(cross)
+	if (output.pop)
+		attr(summ, "lastpop") <- cross
+	summ
 }
 
 simulation1pop <- function(
@@ -335,21 +352,19 @@ simulation1pop <- function(
 		rate.clonal  = default$rate.clonal,
 		fitness      = default$fitness,
 		optimization = default$optimization,
-		input.file   = NULL, 
-		output.file  = NULL,
-		summary      = TRUE) 
+		input.pop    = NULL, 
+		output.pop   = FALSE) 
 {
-	if (!is.null(input.file)) {
-		pop <- readRDS(input.file)
+	if (!is.null(input.pop)) {
+		pop <- clean.inpop(input.pop)
 		stopifnot(nrow(pop[[1]]$genotype) == num.loci) # Number of loci is the only parameter that cannot change
 	} else {
 		pop <- init.population(pop.size=pop.size, var.init=var.init, num.loci=num.loci, var.env=var.env)
 	}
-	summ <- data.frame()
+	summ <- if (is.data.frame(input.pop)) {attr(input.pop, "lastpop") <- NULL; input.pop} else data.frame()
 	for (gg in 1:generations) {
 		pop <- update.fitness(pop, sel.Vs, sel.optimum, fitness)
-		if (summary) 
-			summ <- rbind(summ, summary.population(pop))
+		summ <- rbind(summ, summary.population(pop))
 		if (gg < generations)
 			pop <- reproduction(
 						pop, 
@@ -362,13 +377,9 @@ simulation1pop <- function(
 						rate.clonal  = rate.clonal, 
 						optimization = optimization)
 	}
-	if (!is.null(output.file))
-		saveRDS(pop, output.file)
-	if (summary) {
-		summ
-	} else {
-		pop
-	}
+	if (output.pop)
+		attr(summ, "lastpop") <- pop
+	summ
 }
 
 simulationNpop <- function(
@@ -388,9 +399,8 @@ simulationNpop <- function(
 		rate.migr    = default$rate.migr,
 		fitness      = default$fitness,
 		optimization = default$optimization,
-		input.file   = NULL, 
-		output.file  = NULL,
-		summary      = TRUE) 
+		input.pop    = NULL,
+		output.pop   = FALSE) 
 {
 	# Parameters that can be vectorized (one value for each population)
 	pop.size    <- rep(pop.size,    length.out=num.pop)
@@ -405,18 +415,16 @@ simulationNpop <- function(
 	fitness     <- rep(fitness,     length.out=num.pop)
 	# rate.rec    <- rep(rate.rec,    length.out=num.pop) # Not possible yet, already a vector over loci
 	 
-	if (!is.null(input.file)) {
-		stopifnot(length(input.file) == num.pop)
-		pops <- lapply(input.file, readRDS)
+	if (!is.null(input.pop)) {
+		pops <- clean.inpop(input.pop)
 	} else {
 		pops <- lapply(seq_len(num.pop), function(i) init.population(pop.size=pop.size[i], var.init=var.init[i], num.loci=num.loci, var.env=var.env[i]))
 	}
 	
-	summ <- data.frame()
+	summ <- if (is.data.frame(input.pop)) {attr(input.pop, "lastpop") <- NULL; input.pop} else data.frame()
 	for (gg in 1:generations) {
 		pops <- lapply(seq_len(num.pop), function(i) update.fitness(pops[[i]], sel.Vs[i], sel.optimum[i], fitness[i]))
-		if (summary) 
-			summ <- rbind(summ, cbind(do.call(cbind, lapply(pops, summary.population)), summary.population(unlist(pops, recursive=FALSE))))
+		summ <- rbind(summ, cbind(do.call(cbind, lapply(pops, summary.population)), summary.population(unlist(pops, recursive=FALSE))))
 		if (gg < generations)
 			pops <- lapply(seq_len(num.pop), function(i) reproduction(
 						pops[[i]], 
@@ -431,21 +439,14 @@ simulationNpop <- function(
 					)
 			pops <- migration(pops, rate.migr)
 	}
-	if (!is.null(output.file)) {
-		stopifnot(length(output.file) == num.pop)
-		for (ii in seq_along(pops))
-			saveRDS(pops[[ii]], output.file[ii])
-	}
-	if (summary) {
-		colnames(summ) <- paste0(colnames(summ), ".", rep(c(as.character(1:num.pop), "All"), each=ncol(summ)/(num.pop+1)))
-		summ
-	} else {
-		pops
-	}
+	colnames(summ) <- paste0(colnames(summ), ".", rep(c(as.character(1:num.pop), "All"), each=ncol(summ)/(num.pop+1)))
+	if (output.pop)
+		attr(summ, "lastpop") <- pops
+	summ
 }
-	
-		
-		
+
+
+
 simulation <- function(
 		generations  = 20, 
 		pop.size     = default$pop.size, 
@@ -463,9 +464,8 @@ simulation <- function(
 		rate.migr    = default$rate.migr,
 		fitness      = default$fitness, # can be "gaussian" or "truncation"
 		optimization = default$optimization,   # can be "none", "cmpfun", or "c++"
-		input.file   = NULL, 
-		output.file  = NULL,
-		summary      = TRUE) 
+		input.pop    = NULL,
+		output.pop   = FALSE) 
 {
 	# Checks and adjust parameters
 	stopifnot(
@@ -489,10 +489,10 @@ simulation <- function(
 	
 	if (num.pop == 1) {
 		simulation1pop(
-			generations, pop.size, num.loci, var.init, var.env, sel.Vs, sel.optimum, rate.mut, var.mut, rate.rec, rate.selfing, rate.clonal, fitness, optimization, input.file, output.file, summary)
+			generations, pop.size, num.loci, var.init, var.env, sel.Vs, sel.optimum, rate.mut, var.mut, rate.rec, rate.selfing, rate.clonal, fitness, optimization, input.pop, output.pop)
 	} else {
 		simulationNpop(
-		generations, pop.size, num.loci, var.init, var.env, sel.Vs, sel.optimum, rate.mut, var.mut, rate.rec, rate.selfing, rate.clonal, num.pop, rate.migr, fitness, optimization, input.file, output.file, summary)
+		generations, pop.size, num.loci, var.init, var.env, sel.Vs, sel.optimum, rate.mut, var.mut, rate.rec, rate.selfing, rate.clonal, num.pop, rate.migr, fitness, optimization, input.pop, output.pop)
 	}
 }
 
