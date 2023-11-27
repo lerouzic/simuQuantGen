@@ -13,6 +13,7 @@ default <- list(
 	var.env      = 1.0, 
 	sel.Vs       = 1.0, 
 	sel.optimum  = 0.0, 
+	sel.trunc    = 0.0,
 	rate.mut     = 0.0000, 
 	var.mut      = 1.0,
 	rate.rec     = 0.5,
@@ -83,16 +84,17 @@ There are two families of fitness functions,
 
 $$ w(z) = \exp ( -\frac{1}{2} \frac{(z - \text{sel.optimum})^2}{\text{sel.Vs}} ) $$
 
-* fitness == "truncation" implements truncation selection, a procedure often associated with artificial selection. All individuals above or below a threshold are kept, all the others are discarded. The proportion of individuals discarded is given by sel.Vs (sel.Vs = 0: no selection, sel.Vs = 1: no one survives), the sign of sel.Vs defines the direction of selection (if negative, individuals with the lowest phenotype are kept). 
+* fitness == "truncation" implements truncation selection, a procedure often associated with artificial selection. All individuals above or below a threshold are kept, all the others are discarded. The proportion of individuals discarded is given by sel.trunc (sel.trunc = 0: no selection, sel.trunc = 1: no one survives), the sign of sel.trunc defines the direction of selection (if negative, individuals with the lowest phenotype are kept). 
 
 ```{r}
 update.fitness <- function(
 		population, 
 		sel.Vs       = default$sel.Vs, 
 		sel.optimum  = default$sel.optimum,
+		sel.trunc    = default$sel.trunc,
 		fitness      = default$fitness) 
 {
-	# if fitness=="truncation", abs(sel.Vs) stands for the part of the population discarded (and the sign stands for the direction)
+	# if fitness=="truncation", abs(sel.trunc) stands for the part of the population discarded (and the sign stands for the direction)
 	
 	# Returns a new population object with updated fitnesses. 
 
@@ -100,11 +102,11 @@ update.fitness <- function(
 		lapply(population, function(indiv) { indiv$fitness <- exp(-(indiv$phenotype-sel.optimum)^2 / 2 / sel.Vs); indiv })
 	} else if (fitness == "truncation") {
 		pp  <- sapply(population, "[[", "phenotype")
-		if (sel.Vs > 0) {
-			thr <- quantile(pp, probs=sel.Vs)
+		if (sel.trunc > 0) {
+			thr <- quantile(pp, probs=sel.trunc)
 			lapply(population, function(indiv) { indiv$fitness <- if (indiv$phenotype >= thr) 1.0 else 0.0; indiv })
 		} else {
-			thr <- quantile(pp, probs=1-abs(sel.Vs))
+			thr <- quantile(pp, probs=1-abs(sel.trunc))
 			lapply(population, function(indiv) { indiv$fitness <- if (indiv$phenotype <= thr) 1.0 else 0.0; indiv })
 		}
 	}
@@ -117,7 +119,7 @@ The simulation loop consists in calling the reproduction() routine recursively u
 
 ```{r}
 	for (gg in 1:generations) {
-		pop <- update.fitness(pop, sel.Vs, sel.optimum, fitness)
+		pop <- update.fitness(pop, sel.Vs, sel.optimum, sel.trunc, fitness)
 		summ <- rbind(summ, summary.population(pop))
 		if (gg < generations)
 			pop <- reproduction(

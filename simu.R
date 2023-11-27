@@ -7,6 +7,7 @@ default <- list(
 	var.env      = 1.0, 
 	sel.Vs       = 1.0, 
 	sel.optimum  = 0.0, 
+	sel.trunc    = 0.0,
 	rate.mut     = 0.0000, 
 	var.mut      = 1.0,
 	rate.rec     = 0.5,
@@ -184,9 +185,10 @@ update.fitness <- function(
 		population, 
 		sel.Vs       = default$sel.Vs, 
 		sel.optimum  = default$sel.optimum,
+		sel.trunc    = default$sel.trunc,
 		fitness      = default$fitness) 
 {
-	# if fitness=="truncation", abs(sel.Vs) stands for the part of the population discarded (and the sign stands for the direction)
+	# if fitness=="truncation", abs(sel.trunc) stands for the part of the population discarded (and the sign stands for the direction)
 	
 	# Returns a new population object with updated fitnesses. 
 
@@ -194,11 +196,11 @@ update.fitness <- function(
 		lapply(population, function(indiv) { indiv$fitness <- exp(-(indiv$phenotype-sel.optimum)^2 / 2 / sel.Vs); indiv })
 	} else if (fitness == "truncation") {
 		pp  <- sapply(population, "[[", "phenotype")
-		if (sel.Vs > 0) {
-			thr <- quantile(pp, probs=sel.Vs)
+		if (sel.trunc > 0) {
+			thr <- quantile(pp, probs=sel.trunc)
 			lapply(population, function(indiv) { indiv$fitness <- if (indiv$phenotype >= thr) 1.0 else 0.0; indiv })
 		} else {
-			thr <- quantile(pp, probs=1-abs(sel.Vs))
+			thr <- quantile(pp, probs=1-abs(sel.trunc))
 			lapply(population, function(indiv) { indiv$fitness <- if (indiv$phenotype <= thr) 1.0 else 0.0; indiv })
 		}
 	}
@@ -307,6 +309,7 @@ crosspopulations <- function(
 		var.env      = default$var.env,
 		rate.rec     = default$rate.rec,
 		sel.Vs       = default$sel.Vs,
+		sel.trunc    = default$sel.trunc,
 		sel.optimum  = default$sel.optimum,
 		fitness      = default$fitness,
 		output.pop   = FALSE) 
@@ -329,7 +332,7 @@ crosspopulations <- function(
 					rate.rec = rate.rec)
 				},
 		simplify=FALSE)
-	cross <- update.fitness(cross, sel.Vs, sel.optimum, fitness)
+	cross <- update.fitness(cross, sel.Vs, sel.optimum, sel.trunc, fitness)
 	
 	summ <- summary.population(cross)
 	if (output.pop)
@@ -345,6 +348,7 @@ simulation1pop <- function(
 		var.env      = default$var.env, 
 		sel.Vs       = default$sel.Vs, 
 		sel.optimum  = default$sel.optimum, 
+		sel.trunc    = default$sel.trunc,
 		rate.mut     = default$rate.mut, 
 		var.mut      = default$var.mut, 
 		rate.rec     = default$rate.rec,
@@ -363,7 +367,7 @@ simulation1pop <- function(
 	}
 	summ <- if (is.data.frame(input.pop)) {attr(input.pop, "lastpop") <- NULL; input.pop} else data.frame()
 	for (gg in 1:generations) {
-		pop <- update.fitness(pop, sel.Vs, sel.optimum, fitness)
+		pop <- update.fitness(pop, sel.Vs, sel.optimum, sel.trunc, fitness)
 		summ <- rbind(summ, summary.population(pop))
 		if (gg < generations)
 			pop <- reproduction(
@@ -390,6 +394,7 @@ simulationNpop <- function(
 		var.env      = default$var.env, 
 		sel.Vs       = default$sel.Vs, 
 		sel.optimum  = default$sel.optimum, 
+		sel.trunc    = default$sel.trunc,
 		rate.mut     = default$rate.mut, 
 		var.mut      = default$var.mut, 
 		rate.rec     = default$rate.rec,
@@ -408,6 +413,7 @@ simulationNpop <- function(
 	var.env     <- rep(var.env,     length.out=num.pop)
 	sel.Vs      <- rep(sel.Vs,      length.out=num.pop)
 	sel.optimum <- rep(sel.optimum, length.out=num.pop)
+	sel.trunc   <- rep(sel.trunc,   length.out=num.pop)
 	rate.mut    <- rep(rate.mut,    length.out=num.pop)
 	var.mut     <- rep(var.mut,     length.out=num.pop)
 	rate.selfing<- rep(rate.selfing,length.out=num.pop)
@@ -423,7 +429,7 @@ simulationNpop <- function(
 	
 	summ <- if (is.data.frame(input.pop)) {attr(input.pop, "lastpop") <- NULL; input.pop} else data.frame()
 	for (gg in 1:generations) {
-		pops <- lapply(seq_len(num.pop), function(i) update.fitness(pops[[i]], sel.Vs[i], sel.optimum[i], fitness[i]))
+		pops <- lapply(seq_len(num.pop), function(i) update.fitness(pops[[i]], sel.Vs[i], sel.optimum[i], sel.trunc[i], fitness[i]))
 		summ <- rbind(summ, cbind(do.call(cbind, lapply(pops, summary.population)), summary.population(unlist(pops, recursive=FALSE))))
 		if (gg < generations)
 			pops <- lapply(seq_len(num.pop), function(i) reproduction(
@@ -455,6 +461,7 @@ simulation <- function(
 		var.env      = default$var.env, 
 		sel.Vs       = default$sel.Vs, 
 		sel.optimum  = default$sel.optimum, 
+		sel.trunc    = default$sel.trunc, 
 		rate.mut     = default$rate.mut, 
 		var.mut      = default$var.mut, 
 		rate.rec     = default$rate.rec,
@@ -481,7 +488,7 @@ simulation <- function(
 		rate.clonal  >= 0.0, rate.clonal  <= 1.0,
 		rate.selfing + rate.clonal <= 1.0,
 		fitness %in% c("gaussian", "truncation"),
-		fitness == "gaussian" | (sel.Vs >= -1.0 & sel.Vs <= 1.0),
+		fitness == "gaussian" | (sel.trunc >= -1.0 & sel.trunc <= 1.0),
 		num.pop      >= 1, 
 		rate.migr    >= 0.0, rate.migr <= 1.0) 
 		
@@ -489,10 +496,10 @@ simulation <- function(
 	
 	if (num.pop == 1) {
 		simulation1pop(
-			generations, pop.size, num.loci, var.init, var.env, sel.Vs, sel.optimum, rate.mut, var.mut, rate.rec, rate.selfing, rate.clonal, fitness, optimization, input.pop, output.pop)
+			generations, pop.size, num.loci, var.init, var.env, sel.Vs, sel.optimum, sel.trunc, rate.mut, var.mut, rate.rec, rate.selfing, rate.clonal, fitness, optimization, input.pop, output.pop)
 	} else {
 		simulationNpop(
-		generations, pop.size, num.loci, var.init, var.env, sel.Vs, sel.optimum, rate.mut, var.mut, rate.rec, rate.selfing, rate.clonal, num.pop, rate.migr, fitness, optimization, input.pop, output.pop)
+			generations, pop.size, num.loci, var.init, var.env, sel.Vs, sel.optimum, sel.trunc, rate.mut, var.mut, rate.rec, rate.selfing, rate.clonal, num.pop, rate.migr, fitness, optimization, input.pop, output.pop)
 	}
 }
 
