@@ -259,6 +259,7 @@ summary.population <- function(population) {
 	phenotypes <- sapply(population, "[[", "phenotype")
 	genot.val  <- sapply(population, "[[", "genot.value")
 	fitnesses  <- sapply(population, "[[", "fitness")
+	htz        <- sapply(population, function(ind) mean(ind$genotype[,1] != ind$genotype[,2]))
 	data.frame(
 		phen.mean = mean(phenotypes), 
 		phen.var  = var (phenotypes),
@@ -266,6 +267,7 @@ summary.population <- function(population) {
 		gen.var   = var (genot.val),
 		fit.mean  = mean(fitnesses),
 		fit.var   = var (fitnesses),
+		htz.rate  = mean(htz),
 		sel.diff  = mean(fitnesses*phenotypes)/mean(fitnesses) - mean(phenotypes)
 	)
 }
