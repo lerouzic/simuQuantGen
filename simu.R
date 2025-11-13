@@ -15,8 +15,7 @@ default <- list(
 	rate.clonal  = 0.0, 
 	num.pop      = 1,
 	rate.migr    = 0.0,
-	fitness      = "gaussian",
-	optimization = "none" # coulf be "cmpfun" or "c++"
+	fitness      = "gaussian"
 )
 
 # Function to get mean of repetitions
@@ -89,47 +88,15 @@ make.gamete.R <- function(
 	gam
 }
 
-if(require(compiler)) 
-	make.gamete.cmpfun <- cmpfun(make.gamete.R)
-
-if (require(Rcpp))
-cppFunction('
-NumericVector makeGameteCPP(
-	const List&          indiv, 
-	double               rateMut, 
-	double               varMut, 
-	const NumericVector& rateRec) {
-	    unsigned int        nloc     = rateRec.size() + 1;
-	    const NumericMatrix genotype = as<NumericMatrix>(indiv["genotype"]); 
-		const NumericVector recrand  = Rcpp::runif(nloc, 0.0, 1.0);
-		NumericVector       gam(nloc);
-		
-		unsigned int curpar = recrand[0] < 0.5 ? 1 : 0;
-		for (unsigned int loc = 0; loc < nloc; loc++) {
-			gam[loc] = genotype(loc, curpar);
-			if (recrand[loc+1] < rateRec[loc]) 
-				curpar = (curpar + 1 ) % 2;
-		}
-		if ( (rateMut > 0.0) && (R::runif(0.0, 1.0) < rateMut) ){
-			unsigned int locmut = floor(R::runif(0.0, nloc));
-			gam[locmut] += R::rnorm(0.0, sqrt(varMut));
-		}
-		
-		return(gam);
-	}
-')
 
 make.gamete <- function(
 		indiv, 
 		rate.mut = default$rate.mut, 
 		var.mut  = default$var.mut,
-		rate.rec = default$rate.rec, 
-		optimization = default$optimization)
+		rate.rec = default$rate.rec)
 {
 	FUN.gamete <- make.gamete.R
-	if (optimization == "cmpfun") FUN.gamete <- make.gamete.cmpfun
-	if (optimization == "c++")    FUN.gamete <- makeGameteCPP
-	FUN.gamete(indiv, rate.mut, var.mut, rate.rec)
+	make.gamete.R(indiv, rate.mut, var.mut, rate.rec)
 } 	 
 
 
@@ -139,13 +106,12 @@ make.offspring <- function(
 		var.env  = default$var.env, 
 		rate.mut = default$rate.mut, 
 		var.mut  = default$var.mut, 
-		rate.rec = default$rate.rec,
-		optimization = default$optimization) 
+		rate.rec = default$rate.rec) 
 {
 	# Makes an individual out of two parents. 
 	genotype <- cbind(
-		make.gamete(mother, rate.mut, var.mut, rate.rec, optimization),
-		make.gamete(father, rate.mut, var.mut, rate.rec, optimization))
+		make.gamete(mother, rate.mut, var.mut, rate.rec),
+		make.gamete(father, rate.mut, var.mut, rate.rec))
 
 	list(
 		genotype  = genotype, 
@@ -215,8 +181,7 @@ reproduction <- function(
 		var.mut      = default$var.mut,
 		rate.rec     = default$rate.rec,
 		rate.selfing = default$rate.selfing,
-		rate.clonal  = default$rate.clonal, 
-		optimization = default$optimization) 
+		rate.clonal  = default$rate.clonal) 
 {
 	# Returns the next generation
 	fitnesses <- sapply(population, "[[", "fitness")
@@ -247,8 +212,7 @@ reproduction <- function(
 			var.env  = var.env ,
 			rate.mut = rate.mut, 
 			var.mut  = var.mut, 
-			rate.rec = rate.rec, 
-			optimization = optimization),
+			rate.rec = rate.rec),
 		SIMPLIFY=FALSE)
 	
 	return(c(clones, selfers, outcros)) # The order is not expected to matter
@@ -357,7 +321,6 @@ simulation1pop <- function(
 		rate.selfing = default$rate.selfing,
 		rate.clonal  = default$rate.clonal,
 		fitness      = default$fitness,
-		optimization = default$optimization,
 		input.pop    = NULL, 
 		output.pop   = FALSE) 
 {
@@ -380,8 +343,7 @@ simulation1pop <- function(
 						var.mut      = var.mut, 
 						rate.rec     = rate.rec, 
 						rate.selfing = rate.selfing, 
-						rate.clonal  = rate.clonal, 
-						optimization = optimization)
+						rate.clonal  = rate.clonal)
 	}
 	if (output.pop)
 		attr(summ, "lastpop") <- pop
@@ -405,7 +367,6 @@ simulationNpop <- function(
 		num.pop      = default$num.pop,
 		rate.migr    = default$rate.migr,
 		fitness      = default$fitness,
-		optimization = default$optimization,
 		input.pop    = NULL,
 		output.pop   = FALSE) 
 {
@@ -442,8 +403,7 @@ simulationNpop <- function(
 						var.mut      = var.mut[i], 
 						rate.rec     = rate.rec, 
 						rate.selfing = rate.selfing[i], 
-						rate.clonal  = rate.clonal[i], 
-						optimization = optimization)
+						rate.clonal  = rate.clonal[i])
 					)
 			pops <- migration(pops, rate.migr)
 	}
@@ -472,7 +432,6 @@ simulation <- function(
 		num.pop      = default$num.pop,
 		rate.migr    = default$rate.migr,
 		fitness      = default$fitness, # can be "gaussian" or "truncation"
-		optimization = default$optimization,   # can be "none", "cmpfun", or "c++"
 		input.pop    = NULL,
 		output.pop   = FALSE) 
 {
@@ -498,10 +457,10 @@ simulation <- function(
 	
 	if (num.pop == 1) {
 		simulation1pop(
-			generations, pop.size, num.loci, var.init, var.env, sel.Vs, sel.optimum, sel.trunc, rate.mut, var.mut, rate.rec, rate.selfing, rate.clonal, fitness, optimization, input.pop, output.pop)
+			generations, pop.size, num.loci, var.init, var.env, sel.Vs, sel.optimum, sel.trunc, rate.mut, var.mut, rate.rec, rate.selfing, rate.clonal, fitness, input.pop, output.pop)
 	} else {
 		simulationNpop(
-			generations, pop.size, num.loci, var.init, var.env, sel.Vs, sel.optimum, sel.trunc, rate.mut, var.mut, rate.rec, rate.selfing, rate.clonal, num.pop, rate.migr, fitness, optimization, input.pop, output.pop)
+			generations, pop.size, num.loci, var.init, var.env, sel.Vs, sel.optimum, sel.trunc, rate.mut, var.mut, rate.rec, rate.selfing, rate.clonal, num.pop, rate.migr, fitness, input.pop, output.pop)
 	}
 }
 

@@ -130,8 +130,7 @@ The simulation loop consists in calling the reproduction() routine recursively u
 						var.mut      = var.mut, 
 						rate.rec     = rate.rec, 
 						rate.selfing = rate.selfing, 
-						rate.clonal  = rate.clonal, 
-						optimization = optimization)
+						rate.clonal  = rate.clonal)
 	}
 ```
 
