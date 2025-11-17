@@ -6,7 +6,7 @@
 
 **16:00 - 16:30:** Setting up the software environment: downloading the simulation script, running toy simulations. 
 
-**16:30 - 17:00:** Project presentations. A list of 5 topics will be presented to the students; 3 groups will be defined and students will start working on their project.
+**16:30 - 17:00:** Project presentations. A list of topics will be presented to the students; groups will be defined and students will start working on their project.
 
 ## DAY 2 (Friday 21 Nov afternoon)  
 
