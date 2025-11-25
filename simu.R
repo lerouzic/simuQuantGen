@@ -393,7 +393,9 @@ simulationNpop <- function(
 	summ <- if (is.data.frame(input.pop)) {attr(input.pop, "lastpop") <- NULL; input.pop} else data.frame()
 	for (gg in 1:generations) {
 		pops <- lapply(seq_len(num.pop), function(i) update.fitness(pops[[i]], sel.Vs[i], sel.optimum[i], sel.trunc[i], fitness[i]))
-		summ <- rbind(summ, setNames(cbind(do.call(cbind, lapply(pops, summary.population)), summary.population(unlist(pops, recursive=FALSE))), colnames(summ)))
+		cc <- cbind(do.call(cbind, lapply(pops, summary.population)), summary.population(unlist(pops, recursive=FALSE)))
+		colnames(summ) <- colnames(cc)
+		summ <- rbind(summ, cc)
 		if (gg < generations)
 			pops <- lapply(seq_len(num.pop), function(i) reproduction(
 						pops[[i]], 
