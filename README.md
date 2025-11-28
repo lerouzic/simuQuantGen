@@ -79,10 +79,12 @@ get.phenotype <- function(
 ```
 ## Fitness
 
-There are two families of fitness functions,
+There are three families of fitness functions,
 * fitness ==  "gaussian" defines fitness as a bell-shaped stabilizing function, defined by its optimum (the phenotype for which fitness == 1) and the selection strength Vs (the variance of the fitness curve, i.e. large values correspond to small selection). 
 
 $$ w(z) = \exp ( -\frac{1}{2} \frac{(z - \text{sel.optimum})^2}{\text{sel.Vs}} ) $$
+
+* fitness == "disruptive" applies a double bell-shaped fitness function, with two symmetrical peaks (one at -sel.optimum and the other one at sel.optimum). 
 
 * fitness == "truncation" implements truncation selection, a procedure often associated with artificial selection. All individuals above or below a threshold are kept, all the others are discarded. The proportion of individuals discarded is given by sel.trunc (sel.trunc = 0: no selection, sel.trunc = 1: no one survives), the sign of sel.trunc defines the direction of selection (if negative, individuals with the lowest phenotype are kept). 
 
@@ -100,7 +102,9 @@ update.fitness <- function(
 
 	if (fitness == "gaussian") {
 		lapply(population, function(indiv) { indiv$fitness <- exp(-(indiv$phenotype-sel.optimum)^2 / 2 / sel.Vs); indiv })
-	} else if (fitness == "truncation") {
+	} else if (fitness == "disruptive") {
+                lapply(population, function(indiv) { indiv$fitness <- (exp(-(indiv$phenotype-sel.optimum)^2 / 2 / sel.Vs) + exp(-(indiv$phenotype+sel.optimum)^2 / 2 / sel.Vs))/(1+exp(-(2*sel.optimum)^2 / 2 / sel.Vs)); indiv })
+    } else if (fitness == "truncation") {
 		pp  <- sapply(population, "[[", "phenotype")
 		if (sel.trunc > 0) {
 			thr <- quantile(pp, probs=sel.trunc)
@@ -221,13 +225,16 @@ After having run for the requested number of generations, the simulation stops. 
 	* gen.var   : the genetic variance (should be phen.var - var.env)
 	* fit.mean  : the mean absolute fitness
 	* fit.var   : the variance in absolute fitness
+	* htz.rate  : the proportion of heterozygote genotypes (averaged over loci)
 	* sel.diff  : the realized selection differential (measured from the individual fitnesses)
 
 ```{r}
 summary.population <- function(population) {
+	# Computes summary statistics for the population
 	phenotypes <- sapply(population, "[[", "phenotype")
 	genot.val  <- sapply(population, "[[", "genot.value")
 	fitnesses  <- sapply(population, "[[", "fitness")
+	htz        <- sapply(population, function(ind) mean(ind$genotype[,1] != ind$genotype[,2]))
 	data.frame(
 		phen.mean = mean(phenotypes), 
 		phen.var  = var (phenotypes),
@@ -235,6 +242,7 @@ summary.population <- function(population) {
 		gen.var   = var (genot.val),
 		fit.mean  = mean(fitnesses),
 		fit.var   = var (fitnesses),
+		htz.rate  = mean(htz),
 		sel.diff  = mean(fitnesses*phenotypes)/mean(fitnesses) - mean(phenotypes)
 	)
 }
