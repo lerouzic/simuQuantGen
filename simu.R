@@ -160,7 +160,9 @@ update.fitness <- function(
 
 	if (fitness == "gaussian") {
 		lapply(population, function(indiv) { indiv$fitness <- exp(-(indiv$phenotype-sel.optimum)^2 / 2 / sel.Vs); indiv })
-	} else if (fitness == "truncation") {
+	} else if (fitness == "disruptive") {
+                lapply(population, function(indiv) { indiv$fitness <- (exp(-(indiv$phenotype-sel.optimum)^2 / 2 / sel.Vs) + exp(-(indiv$phenotype+sel.optimum)^2 / 2 / sel.Vs))/(1+exp(-(2*sel.optimum)^2 / 2 / sel.Vs)); indiv })
+        } else if (fitness == "truncation") {
 		pp  <- sapply(population, "[[", "phenotype")
 		if (sel.trunc > 0) {
 			thr <- quantile(pp, probs=sel.trunc)
@@ -458,7 +460,7 @@ simulation <- function(
 		rate.selfing >= 0.0, rate.selfing <= 1.0,
 		rate.clonal  >= 0.0, rate.clonal  <= 1.0,
 		rate.selfing + rate.clonal <= 1.0,
-		fitness %in% c("gaussian", "truncation"),
+		fitness %in% c("gaussian", "truncation","disruptive"),
 		fitness == "gaussian" | (sel.trunc >= -1.0 & sel.trunc <= 1.0),
 		num.pop      >= 1, 
 		rate.migr    >= 0.0, rate.migr <= 1.0) 
