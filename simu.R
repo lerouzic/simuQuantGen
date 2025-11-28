@@ -252,14 +252,17 @@ migration <- function(pops, rate.migr = default$rate.migr) {
    pops
 }
 
-clean.inpop <- function(obj) {
+clean.inpop <- function(obj, n=1) {
 	# Tries to find a proper population in object obj
 	if (is.list(obj)) {
 		if (is.data.frame(obj)) {
 			pp <- attr(obj, "lastpop")
 			if (is.null(pp)) {
 				stop("Impossible to find a population in the provided object. Have you forgotten the output.pop=TRUE option?")
-			} 
+			}
+                        if (is.list(pp[[1]][[1]])) { # pp is not a population, perhaps a list of populations?
+                                return(pp[[n]])
+                        }
 			return(pp)
 		}
 		return(obj) # Hoping that the list can be interpreted as a population, otherwise the crash will happen later. 
@@ -270,7 +273,7 @@ clean.inpop <- function(obj) {
 
 crosspopulations <- function(
 		pop1, 
-		pop2, 
+		pop2         = NULL, 
 		numcross     = length(pop1), 
 		var.env      = default$var.env,
 		rate.rec     = default$rate.rec,
@@ -280,8 +283,13 @@ crosspopulations <- function(
 		fitness      = default$fitness,
 		output.pop   = FALSE) 
 {
-	pop1 <- clean.inpop(pop1)
-	pop2 <- clean.inpop(pop2)
+        if (!is.null(pop2)) {
+	        pop1 <- clean.inpop(pop1)
+	        pop2 <- clean.inpop(pop2)
+        } else {
+                pop1 <- clean.inpop(pop1, 1)
+                pop2 <- clean.inpop(pop1, 2)
+        }
 	stopifnot(length(pop1) > 0, length(pop2) > 0, 
 	          nrow(pop1[[1]]$genotype) == nrow(pop2[[1]]$genotype))
 	rate.rec <- rep_len(rate.rec, nrow(pop1[[1]]$genotype) - 1)
