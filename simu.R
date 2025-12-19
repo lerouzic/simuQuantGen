@@ -93,7 +93,7 @@ make.gamete.R <- function(
                 matrix(nrow=num.loc)
 	# Mutation
 	if (rate.mut > 0 && runif(1) < rate.mut) {
-		mut.loc <- sample(seq_along(gam), 1)
+		mut.loc <- sample(seq_len(nrow(gam)), 1)
 		gam[mut.loc,] <- MASS::mvrnorm(1, mu=gam[mut.loc,], Sigma=var.mut)
 	}
 	gam
