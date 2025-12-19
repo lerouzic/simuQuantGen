@@ -3,14 +3,15 @@ library(abind)
 default <- list(
 	pop.size     = 100, 
 	num.loci     = 5, 
-	num.traits   = 2,
-	var.init     = 1.0*diag(2), 
-	var.env      = 1.0*diag(2), 
-	sel.Vs       = 1.0*diag(2), 
-	sel.optimum  = rep(0.0,2), 
+        mean.init    = c(0, 1),     # intercept, slope
+	var.init     = 1.0*diag(2), # intercept, slope
+	var.env      = 1.0, 
+	sel.Vs       = 1.0, 
+	sel.optimum  = c(0,1),      # intercept, slope 
 	rate.mut     = 0.0, 
-	var.mut      = 1.0*diag(2),
+	var.mut      = 1.0*diag(2), # intercept, slope
 	rate.rec     = 0.5,
+        env.genFUN   = function(g) 0,
 	rate.selfing = 0.0,
 	rate.clonal  = 0.0, 
 	fitness      = "gaussian"
@@ -29,44 +30,51 @@ default <- list(
     setNames(v[upper.tri(v,diag=TRUE)], nm=outer(seq_len(nrow(x)),seq_len(nrow(x)),\(i,j) ifelse(i==j, as.character(i), paste(i,j,sep=".")))[upper.tri(v,diag=TRUE)])
  }
 
-GPmap <- function(genotype) {
+GPEmap <- function(genotype, environment) {
 	# Returns the genotypic value (mean phenotype) corresponding to a genotype
-	colSums(matrix(colSums(genotype),ncol=2))
+	intercept <- sum(genotype[,1:2])
+        slope     <- sum(genotype[,3:4])
+        intercept + slope*environment
 }
 
 get.phenotype <- function(
 		genotype, 
+                environment,
 		var.env = default$var.env) 
 {
-	# Returns a phenotype value corresponding to a specific genotype. Environmental effets are accounted for. 
-	MASS::mvrnorm(1, mu=GPmap(genotype), Sigma=var.env)
+	# Returns a phenotype value corresponding to a specific genotype. Environmental variance + plasticity are accounted for. 
+	rnorm(1, GPEmap(genotype,environment), sqrt(var.env))
 }
 
 init.individual <- function(
+                mean.init= default$mean.init,
 		var.init = default$var.init, 
 		num.loci = default$num.loci, 
-		var.env  = default$var.env) 
+		var.env  = default$var.env,
+                environment= default$env.genFUN(0)) 
 {
 	# Generates a random individual for the starting population
 	genotype <- matrix(
-			MASS::mvrnorm(2*num.loci, mu=rep(0, ncol(var.init)), Sigma=var.init/2/num.loci),
-			ncol=2*ncol(var.init))
+			MASS::mvrnorm(2*num.loci, mu=mean.init/2/num.loci, Sigma=var.init/2/num.loci),
+			ncol=2*2)
 	list(
 		genotype  = genotype, 
-		genot.value= GPmap(genotype),
-		phenotype = get.phenotype(genotype, var.env),
+		genot.value= GPEmap(genotype, environment),
+		phenotype = get.phenotype(genotype, environment, var.env),
 		fitness   = 1
 	)
 }
 
 init.population <- function(
 		pop.size = default$pop.size, 
+                mean.init= default$mean.init,
 		var.init = default$var.init, 
 		num.loci = default$num.loci, 
-		var.env  = default$var.env) 
+		var.env  = default$var.env,
+                environment= default$env.genFUN(0)) 
 {
 	# Generates the initial population	
-	replicate(pop.size, init.individual(var.init, num.loci, var.env), simplify=FALSE)
+	replicate(pop.size, init.individual(mean.init, var.init, num.loci, var.env, environment), simplify=FALSE)
 }
 
 
@@ -119,9 +127,9 @@ make.offspring <- function(
 
 	list(
 		genotype  = genotype, 
-		genot.value= GPmap(genotype),
-		phenotype = get.phenotype(genotype, var.env),
-		fitness   = 1
+		genot.value= NA,
+		phenotype = NA,
+		fitness   = NA
 	)
 }
 
@@ -129,7 +137,8 @@ make.clonal.offspring <- function(
 		parent, 
 		var.env  = default$var.env, 
 		rate.mut = default$rate.mut, 
-		var.mut  = default$var.mut)
+		var.mut  = default$var.mut,
+                environment)
 {
 	genotype <- parent$genotype
 	num.traits <- ncol(genotype)/2
@@ -148,25 +157,28 @@ make.clonal.offspring <- function(
 	
 	list(
 		genotype  = genotype, 
-		genot.value= GPmap(genotype),
-		phenotype = get.phenotype(genotype, var.env),
-		fitness   = 1
+		genot.value= NA,
+		phenotype = NA,
+		fitness   = NA
 	)
 }
 
 update.fitness <- function(
 		population, 
-		inv.sel.Vs   = solve(default$sel.Vs), 
+		sel.Vs       = default$sel.Vs, 
 		sel.optimum  = default$sel.optimum,
 		sel.trunc    = default$sel.trunc,
-		fitness      = default$fitness) 
+		fitness      = default$fitness,
+                environment) 
 {
 	# Returns a new population object with updated fitnesses. 
 
 	if (fitness == "gaussian") {
 		lapply(population, function(indiv) { 
-				dd <- indiv$phenotype-sel.optimum
-				indiv$fitness <- c(exp(-0.5*(t(dd) %*% inv.sel.Vs %*% dd)))
+                                indiv$genot.value <- GPEmap(indiv$genotype, environment)
+                                indiv$phenotype   <- get.phenotype(indiv$genotype, environment)
+				dd <- indiv$phenotype-(sel.optimum[1] - environment*sel.optimum[2])
+				indiv$fitness     <- exp(-0.5*dd^2 / sel.Vs)
 				indiv })
 	} 
 }
@@ -221,17 +233,24 @@ summary.population <- function(population) {
 	# Computes summary statistics for the population
 	phenotypes <- sapply(population, "[[", "phenotype")
 	genot.val  <- sapply(population, "[[", "genot.value")
+        genot.int  <- sapply(population, function(indiv) sum(indiv$genotype[,1:2]))
+        genot.slp  <- sapply(population, function(indiv) sum(indiv$genotype[,3:4]))
 	fitnesses  <- sapply(population, "[[", "fitness")
 	htz        <- sapply(population, function(ind) mean(ind$genotype[,1] != ind$genotype[,2])) # not very precise in a multivariate context
 	data.frame(
-		phen.mean = t(rowMeans(phenotypes)), 
-		phen.var  = t(rowVars(phenotypes)),
-		gen.mean  = t(rowMeans(genot.val)),
-		gen.var   = t(rowVars(genot.val)),
-		fit.mean  = mean(fitnesses),
-		fit.var   = var (fitnesses),
-		htz.rate  = mean(htz),
-		sel.diff  = t(colMeans(fitnesses/mean(fitnesses)*t(phenotypes)) - rowMeans(phenotypes))
+		phen.mean    = mean(phenotypes), 
+		phen.var     = var (phenotypes),
+		gen.mean     = mean(genot.val),
+		gen.var      = var (genot.val),
+                gen.int.mean = mean(genot.int),
+                gen.int.var  = var (genot.int),
+                gen.slp.mean = mean(genot.slp),
+                gen.slp.var  = var (genot.slp),
+                gen.int.slp.cov = cov(genot.int, genot.slp),
+		fit.mean     = mean(fitnesses),
+		fit.var      = var (fitnesses),
+		htz.rate     = mean(htz),
+		sel.diff     = mean(fitnesses*phenotypes)/mean(fitnesses) - mean(phenotypes)
 	)
 }
 
@@ -265,6 +284,7 @@ crosspopulations <- function(
 		sel.trunc    = default$sel.trunc,
 		sel.optimum  = default$sel.optimum,
 		fitness      = default$fitness,
+                environment  = default$env.genFUN(0),
 		output.pop   = FALSE) 
 {
         if (!is.null(pop2)) {
@@ -290,7 +310,7 @@ crosspopulations <- function(
 					rate.rec = rate.rec)
 				},
 		simplify=FALSE)
-	cross <- update.fitness(cross, inv.sel.Vs, sel.optimum, sel.trunc, fitness)
+	cross <- update.fitness(cross, sel.Vs, sel.optimum, sel.trunc, fitness, environment)
 	
 	summ <- summary.population(cross)
 	if (output.pop)
@@ -302,7 +322,7 @@ simulation1pop <- function(
 		generations  = 20, 
 		pop.size     = default$pop.size, 
 		num.loci     = default$num.loci, 
-		num.traits   = default$num.traits,
+                mean.init    = default$mean.init,
 		var.init     = default$var.init, 
 		var.env      = default$var.env, 
 		sel.Vs       = default$sel.Vs, 
@@ -314,6 +334,7 @@ simulation1pop <- function(
 		rate.selfing = default$rate.selfing,
 		rate.clonal  = default$rate.clonal,
 		fitness      = default$fitness,
+                env.genFUN   = default$env.genFUN,
 		input.pop    = NULL, 
 		output.pop   = FALSE) 
 {
@@ -322,12 +343,12 @@ simulation1pop <- function(
 		stopifnot(nrow(pop[[1]]$genotype) == num.loci, ncol(pop[[1]]$genotype == num.traits)) 
 		# Number of loci and number of traits are the only parameters that cannot change
 	} else {
-		pop <- init.population(pop.size=pop.size, var.init=var.init, num.loci=num.loci, var.env=var.env)
+		pop <- init.population(pop.size=pop.size, var.init=var.init, num.loci=num.loci, var.env=var.env, environment=env.genFUN(0))
 	}
-        inv.sel.Vs <- solve(sel.Vs)
 	summ <- if (is.data.frame(input.pop)) {attr(input.pop, "lastpop") <- NULL; input.pop} else data.frame()
 	for (gg in 1:generations) {
-		pop <- update.fitness(pop, inv.sel.Vs, sel.optimum, sel.trunc, fitness)
+                environment <- env.genFUN(gg)
+		pop <- update.fitness(pop, sel.Vs, sel.optimum, sel.trunc, fitness, environment=environment)
 		summ <- rbind(summ, summary.population(pop))
 		if (gg < generations)
 			pop <- reproduction(
@@ -351,7 +372,7 @@ simulation <- function(
 		generations  = 20, 
 		pop.size     = default$pop.size, 
 		num.loci     = default$num.loci, 
-		num.traits   = default$num.traits,
+                mean.init    = default$mean.init,
 		var.init     = default$var.init, 
 		var.env      = default$var.env, 
 		sel.Vs       = default$sel.Vs, 
@@ -364,7 +385,8 @@ simulation <- function(
 		rate.clonal  = default$rate.clonal,
 		num.pop      = default$num.pop,
 		rate.migr    = default$rate.migr,
-		fitness      = default$fitness, # can be "gaussian" or "truncation"
+		fitness      = default$fitness, # can be "gaussian" only
+                env.genFUN   = default$env.genFUN,
 		input.pop    = NULL,
 		output.pop   = FALSE) 
 {
@@ -373,14 +395,11 @@ simulation <- function(
 		generations >= 1,
 		pop.size    >= 1,
 		num.loci    >= 1,
-		num.traits  >= 1,
-		is.matrix(var.init) && ncol(var.init) == num.traits && nrow(var.init) == num.traits,
-		is.matrix(var.env)  && ncol(var.env)  == num.traits  && nrow(var.env) == num.traits,
-		is.matrix(var.mut)  && ncol(var.mut)  == num.traits  && nrow(var.mut) == num.traits,
-		is.matrix(sel.Vs)   && ncol(sel.Vs)   == num.traits  && nrow(sel.Vs)  == num.traits,
-		all(diag(var.init) >= 0.0),
-		all(diag(var.env)  >= 0.0),
-		all(diag(var.mut)  >= 0.0),
+                length(mean.init) == 2,
+		is.matrix(var.init) && ncol(var.init) == 2 && nrow(var.init) == 2,
+		var.env     >= 0,
+		is.matrix(var.mut)  && ncol(var.mut)  == 2 && nrow(var.mut)  == 2,
+		sel.Vs      > 0,
 		rate.mut    >= 0.0, rate.mut <= 1.0,
 		all(rate.rec >= 0.0), all(rate.rec <= 0.5),
 		rate.selfing >= 0.0, rate.selfing <= 1.0,
@@ -392,9 +411,9 @@ simulation <- function(
 	rate.rec <- rep_len(rate.rec, num.loci - 1)
 	
 	simulation1pop(
-			generations, pop.size, num.loci, num.traits, 
-			var.init, var.env, sel.Vs, sel.optimum, sel.trunc, rate.mut, var.mut, rate.rec, rate.selfing, rate.clonal, 
-			fitness, input.pop, output.pop)
+			generations, pop.size, num.loci, 
+			mean.init, var.init, var.env, sel.Vs, sel.optimum, sel.trunc, rate.mut, var.mut, rate.rec, rate.selfing, rate.clonal, 
+			fitness, env.genFUN=env.genFUN, input.pop, output.pop)
 
 }
 
