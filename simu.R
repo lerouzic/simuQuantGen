@@ -395,7 +395,10 @@ simulationNpop <- function(
 	# rate.rec    <- rep(rate.rec,    length.out=num.pop) # Not possible yet, already a vector over loci
 	 
 	if (!is.null(input.pop)) {
-		pops <- clean.inpop(input.pop)
+		stopifnot(
+			!is.null(attr(input.pop, "lastpop")), 
+			length(attr(input.pop, "lastpop")) == num.pop)
+		pops <- attr(input.pop, "lastpop")
 	} else {
 		pops <- lapply(seq_len(num.pop), function(i) init.population(pop.size=pop.size[i], var.init=var.init[i], num.loci=num.loci, var.env=var.env[i]))
 	}
