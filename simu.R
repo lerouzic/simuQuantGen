@@ -1,4 +1,3 @@
-library(abind)
 
 default <- list(
 	pop.size     = 100, 
@@ -20,7 +19,8 @@ default <- list(
 
 # Function to get mean of repetitions
   list.sim.mean <- function(ll) {
-    arr <- do.call(abind, c(ll, list(along=3)))
+	require(abind)
+    arr <- do.call(abind::abind, c(ll, list(along=3)))
     ans <- as.data.frame(rowMeans(arr, dims=2))
     rownames(ans) <- rownames(ll[[1]])
     ans
@@ -95,6 +95,7 @@ make.gamete <- function(
 		var.mut  = default$var.mut,
 		rate.rec = default$rate.rec)
 {
+	stopifnot(length(rate.rec) == nrow(indiv$genotype)-1)
 	FUN.gamete <- make.gamete.R
 	make.gamete.R(indiv, rate.mut, var.mut, rate.rec)
 } 	 
