@@ -263,7 +263,13 @@ clean.inpop <- function(obj, n=1) {
 				stop("Impossible to find a population in the provided object. Have you forgotten the output.pop=TRUE option?")
 			}
                         if (is.list(pp[[1]][[1]])) { # pp is not a population, perhaps a list of populations?
-                                return(pp[[n]])
+								if (max(n) > length(pp))
+									stop("Impossible to get population ", max(n), ", only ", length(pp), " populations available.")
+								if (length(n) == 1) {
+									return(pp[[n]])
+								} else {
+									return(pp[n])
+								}
                         }
 			return(pp)
 		}
@@ -289,8 +295,9 @@ crosspopulations <- function(
 	        pop1 <- clean.inpop(pop1)
 	        pop2 <- clean.inpop(pop2)
         } else {
-                pop1 <- clean.inpop(pop1, 1)
-                pop2 <- clean.inpop(pop1, 2)
+			warning("Crosspopulations from one simulation: crossing populations 1 and 2.")
+            pop2 <- clean.inpop(pop1, 2)
+            pop1 <- clean.inpop(pop1, 1)
         }
 	stopifnot(length(pop1) > 0, length(pop2) > 0, 
 	          nrow(pop1[[1]]$genotype) == nrow(pop2[[1]]$genotype))
@@ -395,10 +402,7 @@ simulationNpop <- function(
 	# rate.rec    <- rep(rate.rec,    length.out=num.pop) # Not possible yet, already a vector over loci
 	 
 	if (!is.null(input.pop)) {
-		stopifnot(
-			!is.null(attr(input.pop, "lastpop")), 
-			length(attr(input.pop, "lastpop")) == num.pop)
-		pops <- attr(input.pop, "lastpop")
+		pops <- clean.inpop(input.pop, n=seq_len(num.pop))
 	} else {
 		pops <- lapply(seq_len(num.pop), function(i) init.population(pop.size=pop.size[i], var.init=var.init[i], num.loci=num.loci, var.env=var.env[i]))
 	}
